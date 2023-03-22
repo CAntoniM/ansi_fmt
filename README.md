@@ -30,3 +30,75 @@ pipe or after fact by reading a file it will allow you to either capture more
 readable logs or process existing logs to make them easier to read.
 
 ## Examples
+
+## The Theory
+
+So what are ANSI Control codes? these are a set of formatting instructions that
+have more been evolved into rather than actually designed. but they generally
+follow the following sturcture:
+
+```txt
+    <Escape>+"["+<Command> + ([";" + <arg>])
+```
+
+where the Escape can be any of the following possible valid values
+
+- ```^[```
+- ```\033```
+- ```\u001b```
+- ```\x1B```
+- ```27``` - This reffers to the actual byte value.
+
+and the Command values are any of the ones described in the following docs found
+[here](https://en.wikipedia.org/wiki/ANSI_escape_code). For this project we only
+really give a damn about preserving the format codes as while the other control
+codes make alot of sence as part of a terminal setting outside that they do not
+proide much so can be removed. as such the supported stlyings will be:
+
+- Reset
+- Bold
+- Faint
+- Italic
+- Underline
+- Slow Blink
+- Rapid Blink
+- Invert
+- Hide
+- Strike
+- PrimaryFont
+- AlternatFont
+- Fraktur
+- DoubleUnderline
+- ResetIntensity
+- RestItlaics
+- ResetUnderline
+- ResetBlinking
+- RestReversed
+- RestConcealed
+- ResetStrike
+- ForgroundColor
+- 8 bit ForgroundColor
+- 24bit ForgroundColor
+- ResetForground
+- 8 bit BackgroundColor
+- 24 bit BackgroundColor
+- BackgrounColor
+- RestetBackground
+- Framed
+- Encircled
+- Overlined
+- ResetFramedAndEncircled
+- NotOverlined
+- SetUnderlineColor
+- DefaultUnderline
+- IdeogramUnderline
+- IdeogramDoubleUnderline
+- IdeogramOverline
+- IdeogramDoubleOverline
+- IdeogramStressMarking
+- ResetIdeogram
+- Subscript
+- Superscript
+- NetherSuborSuperscript
+- SetBrightForeground
+- SetBrightBackground
