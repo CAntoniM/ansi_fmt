@@ -8,11 +8,11 @@ use phf::phf_map;
 /// These functions should remove the escape seqeunce from the String given
 /// and if they can come out with some formatting change this can be adding or
 /// removing the specified format
-static FE_HANDLERS: phf::Map<char,fn(String,usize) -> (String,Option<(Fromatting,bool)>)> = phf_map! {
-    '[' => |line: String, start: usize| -> (String,Option<(Fromatting,bool)>) {
-        (line.clone(),None)
+static FE_HANDLERS: phf::Map<char,fn(String,usize) -> (String,Vec<(Fromatting,bool)>)> = phf_map! {
+    '[' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
+        (line.clone(),Vec::new())
     },
-    'N' => |line: String, start: usize| -> (String,Option<(Fromatting,bool)>) {
+    'N' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
         let mut can_copy = false;
         let mut output_string = String::new();
         for (index, character) in line.chars().enumerate() {
@@ -27,9 +27,9 @@ static FE_HANDLERS: phf::Map<char,fn(String,usize) -> (String,Option<(Fromatting
                 output_string.push(character);
             }
         }
-        return (output_string,None)
+        return (output_string,Vec::new())
     },
-    'O' => |line: String, start: usize| -> (String,Option<(Fromatting,bool)>) {
+    'O' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
         let mut can_copy = false;
         let mut output_string = String::new();
         for (index, character) in line.chars().enumerate() {
@@ -44,9 +44,9 @@ static FE_HANDLERS: phf::Map<char,fn(String,usize) -> (String,Option<(Fromatting
                 output_string.push(character);
             }
         }
-        return (output_string,None)
+        return (output_string,Vec::new())
     },
-    'P' => |line: String, start: usize| -> (String,Option<(Fromatting,bool)>) {
+    'P' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
         let mut can_copy = false;
         let mut expected_next_char: Option<char> = None;
         let mut output_string = String::new();
@@ -65,7 +65,7 @@ static FE_HANDLERS: phf::Map<char,fn(String,usize) -> (String,Option<(Fromatting
                 output_string.push(character);
             }
         }
-        return (output_string,None)
+        return (output_string,Vec::new())
     },
 };
 
@@ -94,7 +94,7 @@ struct Cli {
 
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 struct TextPosistion {
     line: usize,
     char: usize,
@@ -108,8 +108,9 @@ impl TextPosistion {
         }
     }
 }
-
+#[derive(PartialEq, Eq, PartialOrd)]
 enum Fromatting {
+    Default,
     Bold,
 }
 
@@ -117,7 +118,7 @@ enum Fromatting {
 struct FormatBlock {
     start_posistion: TextPosistion,
     end_posistion: TextPosistion,
-    style: Option<Fromatting>
+    style: Fromatting
 }
 
 impl FormatBlock {
@@ -125,7 +126,7 @@ impl FormatBlock {
         FormatBlock { 
             start_posistion: TextPosistion::new(),
             end_posistion: TextPosistion::new(),
-            style: None
+            style: Fromatting::Default
         }
     }
 
@@ -144,7 +145,7 @@ impl FormatedTextFile {
         }
     }
 
-    pub fn get_formatting_at(&mut self, index: usize) -> Vec<FormatBlock> {
+    pub fn get_formatting_at(&mut self, index: &TextPosistion) -> Vec<FormatBlock> {
         return Vec::new()
     }
 
@@ -153,29 +154,40 @@ impl FormatedTextFile {
             line = line.replace(escape_sequence,ESC.to_string().as_str());
         }
 
-        let mut index : usize
-        while Some(index) = line.find(ESC){
+        while let Some(index) = line.find(ESC){
             let next_char = line.as_bytes()[index+1] as char;
-            match FE_HANDLERS.get(&next_char) {
-                Some(handler) => {
-                    let option_format: Option<(Fromatting,bool)>;
-                    (line,option_format) = handler(line.clone(),index);
-                    match option_format {
-                        Some((fmt,is_removing)) => {
-                            if ! is_removing {
-                                let fmts = self.get_formatting_at(index);
-
+            if let Some(handler) =  FE_HANDLERS.get(&next_char) {
+                let option_formats: Vec<(Fromatting,bool)>;
+                (line,option_formats) = handler(line.clone(),index);
+                for option_format in option_formats {
+                    let (format,is_removing) = option_format;
+                    let current_pos = TextPosistion { line: self.text.len(), char: index };
+                    if is_removing && format != Fromatting::Default {
+                        let fmts = self.get_formatting_at(&current_pos);
+                        for mut fmt in fmts {
+                            if fmt.style == format {
+                                fmt.end_posistion = TextPosistion{line: self.text.len(),char: index};
+                                break;
                             }
-                        },                        
-                        None => {
-                            continue;
                         }
+                    } else if is_removing && format == Fromatting::Default {
+                        for mut fmt in self.get_formatting_at(&current_pos) {
+                            fmt.end_posistion = current_pos;
+                        }
+                    } else {
+                        self.style_blocks.push(
+                            FormatBlock { 
+                                start_posistion: current_pos,
+                            end_posistion: 
+                                TextPosistion {
+                                    line: 0,
+                                    char: 0
+                                },
+                            style: format 
+                        })
                     }
                 }
-                None => {
-                    continue;
-                }
-            }           
+            }
         }
         self.text.push(line);
     }
