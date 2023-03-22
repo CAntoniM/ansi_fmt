@@ -1,10 +1,75 @@
 use clap::{Parser,ValueEnum};
-use std::{path::PathBuf, fs::File,collections::HashMap, io::{self, BufRead}};
+use std::{path::PathBuf, fs::File, io::{self, BufRead}};
 use phf::phf_map;
 
-static EscSeq: phf::Map<&'static str,Fromatting> = phf_map! {
-    
+/// This is the map that is responceable for relating the character given as
+/// the FE escape seqeunce to the function that is designed to process them.
+/// 
+/// These functions should remove the escape seqeunce from the String given
+/// and if they can come out with some formatting change this can be adding or
+/// removing the specified format
+static FE_HANDLERS: phf::Map<char,fn(String,usize) -> (String,Option<(Fromatting,bool)>)> = phf_map! {
+    '[' => |line: String, start: usize| -> (String,Option<(Fromatting,bool)>) {
+        (line.clone(),None)
+    },
+    'N' => |line: String, start: usize| -> (String,Option<(Fromatting,bool)>) {
+        let mut can_copy = false;
+        let mut output_string = String::new();
+        for (index, character) in line.chars().enumerate() {
+            if index < start {
+                output_string.push(character);
+                continue;
+            }
+            if character == 'N'{
+                can_copy = true;
+            }
+            if can_copy {
+                output_string.push(character);
+            }
+        }
+        return (output_string,None)
+    },
+    'O' => |line: String, start: usize| -> (String,Option<(Fromatting,bool)>) {
+        let mut can_copy = false;
+        let mut output_string = String::new();
+        for (index, character) in line.chars().enumerate() {
+            if index < start {
+                output_string.push(character);
+                continue;
+            }
+            if character == 'O'{
+                can_copy = true;
+            }
+            if can_copy {
+                output_string.push(character);
+            }
+        }
+        return (output_string,None)
+    },
+    'P' => |line: String, start: usize| -> (String,Option<(Fromatting,bool)>) {
+        let mut can_copy = false;
+        let mut expected_next_char: Option<char> = None;
+        let mut output_string = String::new();
+        for (index, character) in line.chars().enumerate() {
+            if index < start {
+                output_string.push(character);
+                continue;
+            }
+            if character == '\u{001b}' {
+                expected_next_char = Some('\\')
+            }
+            if Some('\\') == expected_next_char {
+                can_copy = true
+            }
+            if can_copy {
+                output_string.push(character);
+            }
+        }
+        return (output_string,None)
+    },
 };
+
+static ESC: char = 0x1B as char;
 
 #[derive(Clone, Copy,PartialEq, Eq, PartialOrd, Ord,ValueEnum,Debug)]
 enum OutputFormat {
@@ -79,34 +144,38 @@ impl FormatedTextFile {
         }
     }
 
-    pub fn get_all_escape_sequances(line: &String,line_no:usize) -> Vec<TextPosistion> {
-        let escape_sequances = [r"\e",r"\033",r"\u001b",r"\x1B",r"^[","\u{001b}"];        
-        let matcher= |line : &String, token: &str| -> Vec<usize> {
-            line.match_indices(token).map(|(i,_)|i).collect()
-        };
-
-        let mut escape_sequnce_posistion: Vec<TextPosistion> = Vec::new();
-        let mut indexs: Vec<usize> = Vec::new();
-        
-        for escape_sequance in escape_sequances {
-            let mut temp = matcher(line,escape_sequance);
-            indexs.append(&mut temp);
-        }
-
-        indexs.sort();
-        
-        for index in indexs {
-            escape_sequnce_posistion.push(TextPosistion { line: line_no, char: index});
-        }
-        
-        escape_sequnce_posistion
+    pub fn get_formatting_at(&mut self, index: usize) -> Vec<FormatBlock> {
+        return Vec::new()
     }
 
-    pub fn read_line(&mut self, line: String) {
-        let escape_posistions = FormatedTextFile::get_all_escape_sequances(&line, self.text.len());
-        
-        for escape_posistion in escape_posistions {
-            println!("{:#?}",escape_posistion);
+    pub fn read_line(&mut self,mut line: String) {
+        for escape_sequence in [r"\e",r"\033",r"\u001b",r"\x1B"] {
+            line = line.replace(escape_sequence,ESC.to_string().as_str());
+        }
+
+        let mut index : usize
+        while Some(index) = line.find(ESC){
+            let next_char = line.as_bytes()[index+1] as char;
+            match FE_HANDLERS.get(&next_char) {
+                Some(handler) => {
+                    let option_format: Option<(Fromatting,bool)>;
+                    (line,option_format) = handler(line.clone(),index);
+                    match option_format {
+                        Some((fmt,is_removing)) => {
+                            if ! is_removing {
+                                let fmts = self.get_formatting_at(index);
+
+                            }
+                        },                        
+                        None => {
+                            continue;
+                        }
+                    }
+                }
+                None => {
+                    continue;
+                }
+            }           
         }
         self.text.push(line);
     }
