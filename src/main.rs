@@ -29,9 +29,10 @@ struct Cli {
 
 }
 
+#[derive(Debug)]
 struct TextPosistion {
-    line: u64,
-    char: u64,
+    line: usize,
+    char: usize,
 }
 
 impl TextPosistion {
@@ -45,21 +46,9 @@ impl TextPosistion {
 
 enum Fromatting {
     Bold,
-    Italic,
-    Underline
 }
-/// This represent an area of text which as has some styling applied to it 
-/// This this is read from an ANSI Control code which is formatted as such
-/// 
-/// \<ESC\> + "[" + <FMT_SEQ> + (";" + <FMT_SEQ>)
-/// 
-/// Where Esc is one of the following:
-/// 
-/// ^[
-/// \033
-/// \u001b
-/// \x18
-/// 
+
+
 struct FormatBlock {
     start_posistion: TextPosistion,
     end_posistion: TextPosistion,
@@ -75,13 +64,9 @@ impl FormatBlock {
         }
     }
 
-    pub fn read_line() {
-
-    }
 }
 
 struct FormatedTextFile {
-    cursor: TextPosistion,
     text: Vec<String>,
     style_blocks: Vec<FormatBlock>
 }
@@ -89,10 +74,41 @@ struct FormatedTextFile {
 impl FormatedTextFile {
     pub fn new() -> FormatedTextFile {
         FormatedTextFile { 
-            cursor: TextPosistion::new(),
             text: Vec::new(),
             style_blocks: Vec::new()
         }
+    }
+
+    pub fn get_all_escape_sequances(line: &String,line_no:usize) -> Vec<TextPosistion> {
+        let escape_sequances = [r"\e",r"\033",r"\u001b",r"\x1B",r"^[","\u{001b}"];        
+        let matcher= |line : &String, token: &str| -> Vec<usize> {
+            line.match_indices(token).map(|(i,_)|i).collect()
+        };
+
+        let mut escape_sequnce_posistion: Vec<TextPosistion> = Vec::new();
+        let mut indexs: Vec<usize> = Vec::new();
+        
+        for escape_sequance in escape_sequances {
+            let mut temp = matcher(line,escape_sequance);
+            indexs.append(&mut temp);
+        }
+
+        indexs.sort();
+        
+        for index in indexs {
+            escape_sequnce_posistion.push(TextPosistion { line: line_no, char: index});
+        }
+        
+        escape_sequnce_posistion
+    }
+
+    pub fn read_line(&mut self, line: String) {
+        let escape_posistions = FormatedTextFile::get_all_escape_sequances(&line, self.text.len());
+        
+        for escape_posistion in escape_posistions {
+            println!("{:#?}",escape_posistion);
+        }
+        self.text.push(line);
     }
 
 }
@@ -103,8 +119,9 @@ fn main() {
         let file = File::open(path).unwrap();
         let reader = io::BufReader::new(file);
         let mut fmt_txt = FormatedTextFile::new();
+        
         for line in reader.lines() {
-            
+            fmt_txt.read_line(line.unwrap());
         }
     }
 }
