@@ -10,7 +10,19 @@ use phf::phf_map;
 /// removing the specified format
 static FE_HANDLERS: phf::Map<char,fn(String,usize) -> (String,Vec<(Fromatting,bool)>)> = phf_map! {
     '[' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
-        (line.clone(),Vec::new())
+        let mut can_copy = false;
+        let mut output_string = String::new();
+        output_string = line[..(start - 1)].to_string();
+        let mut chars = line.chars();
+        match chars.nth(start+2 ).unwrap() {
+            
+            _ => {
+                todo!("Implement a unexpected handler")
+            }
+        };
+
+
+        return (output_string,Vec::new())        
     },
     'N' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
         let mut can_copy = false;
@@ -178,13 +190,14 @@ impl FormatedTextFile {
                         self.style_blocks.push(
                             FormatBlock { 
                                 start_posistion: current_pos,
-                            end_posistion: 
-                                TextPosistion {
-                                    line: 0,
-                                    char: 0
-                                },
-                            style: format 
-                        })
+                                end_posistion: 
+                                    TextPosistion {
+                                        line: 0,
+                                        char: 0
+                                    },
+                                style: format 
+                            }
+                        )
                     }
                 }
             }
