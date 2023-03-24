@@ -771,11 +771,11 @@ mod ansi_test {
 
     #[test]
     fn color_from_args() {
-        let base_8_bit = vec![2 as u8];
+        let base_24_bit = vec![2 as u8];
         for r in 0..=255 as u8 {
             for g in 0..=255 as u8 {
                 for b in 0..=255 as u8 {
-                    let mut args = base_8_bit.clone();
+                    let mut args = base_24_bit.clone();
                     args.push(r);
                     args.push(g);
                     args.push(b);
@@ -790,6 +790,20 @@ mod ansi_test {
                     )
                 }
             }
+        }
+        let base_8_bit = vec![5 as u8];
+        for c in 0..=255 as u8 {
+            let mut args = base_8_bit.clone();
+            args.push(c);
+            args.reverse();
+            assert_eq!(
+                Color::from_args(&mut args),
+                Some(Color {
+                    red: (c >> 5) * 32,
+                    green: ((c & 28) >> 2) * 32,
+                    blue: (c & 3) * 32,
+                })
+            )
         }
     }
 }
