@@ -17,35 +17,67 @@ struct Color {
 
 impl Color {
     pub fn black() -> Color {
-        Color { red: 0, green: 0, blue: 0 }
+        Color {
+            red: 0,
+            green: 0,
+            blue: 0,
+        }
     }
 
     pub fn red() -> Color {
-        Color { red: 128, green: 0, blue: 0 }
+        Color {
+            red: 128,
+            green: 0,
+            blue: 0,
+        }
     }
 
     pub fn green() -> Color {
-        Color { red: 0, green: 128, blue: 0 }
+        Color {
+            red: 0,
+            green: 128,
+            blue: 0,
+        }
     }
 
     pub fn yellow() -> Color {
-        Color { red: 128, green: 128, blue: 0 }
+        Color {
+            red: 128,
+            green: 128,
+            blue: 0,
+        }
     }
 
     pub fn blue() -> Color {
-        Color { red: 0, green: 0, blue: 128 }
+        Color {
+            red: 0,
+            green: 0,
+            blue: 128,
+        }
     }
 
     pub fn magenta() -> Color {
-        Color { red: 128, green: 0, blue: 128 }
+        Color {
+            red: 128,
+            green: 0,
+            blue: 128,
+        }
     }
 
     pub fn cyan() -> Color {
-        Color { red: 0, green: 128, blue: 128 }
+        Color {
+            red: 0,
+            green: 128,
+            blue: 128,
+        }
     }
 
     pub fn white() -> Color {
-        Color { red: 192, green: 192, blue: 192 }
+        Color {
+            red: 192,
+            green: 192,
+            blue: 192,
+        }
     }
 
     pub fn from_index(index: u8) -> Option<Color> {
@@ -58,8 +90,8 @@ impl Color {
             5 => Some(Color::magenta()),
             6 => Some(Color::cyan()),
             7 => Some(Color::white()),
-            _ => None,            
-        }
+            _ => None,
+        };
     }
 
     pub fn from_args(args: &mut Vec<u8>) -> Option<Color> {
@@ -170,16 +202,16 @@ impl SelectGraphicRendition {
                 27 => Some(SelectGraphicRendition::NotReveresed),
                 28 => Some(SelectGraphicRendition::Reveal),
                 29 => Some(SelectGraphicRendition::NotCrossedOut),
-                30..=37 => Some(SelectGraphicRendition::ForgroundColor(
-                    Color::from_index(arg-30),
-                )),
+                30..=37 => Some(SelectGraphicRendition::ForgroundColor(Color::from_index(
+                    arg - 30,
+                ))),
                 38 => Some(SelectGraphicRendition::ForgroundColor(Color::from_args(
                     args,
                 ))),
                 39 => Some(SelectGraphicRendition::ForgroundColor(None)),
-                40..=47 => Some(SelectGraphicRendition::BackgroundColor(
-                    Color::from_index(arg-40),
-                )),
+                40..=47 => Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                    arg - 40,
+                ))),
                 48 => Some(SelectGraphicRendition::ForgroundColor(Color::from_args(
                     args,
                 ))),
@@ -203,22 +235,18 @@ impl SelectGraphicRendition {
                 74 => Some(SelectGraphicRendition::Superscript),
                 75 => Some(SelectGraphicRendition::Subscript),
                 75 => Some(SelectGraphicRendition::NethirSuperOrSubScript),
-                90..=97 => {
-                    match Color::from_index(arg-90) {
-                        Some(c) => {
-                            Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(c))))
-                        }
-                        None => Some(SelectGraphicRendition::ForgroundColor(None))
-                    }
-                }
-                100..=107 => {
-                    match Color::from_index(arg-90) {
-                        Some(c) => {
-                            Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(c))))
-                        }
-                        None => Some(SelectGraphicRendition::BackgroundColor(None))
-                    }
-                }
+                90..=97 => match Color::from_index(arg - 90) {
+                    Some(c) => Some(SelectGraphicRendition::ForgroundColor(Some(
+                        Color::make_bright(c),
+                    ))),
+                    None => Some(SelectGraphicRendition::ForgroundColor(None)),
+                },
+                100..=107 => match Color::from_index(arg - 90) {
+                    Some(c) => Some(SelectGraphicRendition::BackgroundColor(Some(
+                        Color::make_bright(c),
+                    ))),
+                    None => Some(SelectGraphicRendition::BackgroundColor(None)),
+                },
                 _ => None,
             },
             None => Some(SelectGraphicRendition::Normal),
@@ -463,7 +491,7 @@ impl ANSIText {
         return text_buffer;
     }
 
-    pub fn read(&mut self,text: String) {
+    pub fn read(&mut self, text: String) {
         let mut sequences = text.split(ESC);
         self.text.push(ANSITextElement::Text(
             sequences.next().unwrap_or("").to_string(),
@@ -474,9 +502,7 @@ impl ANSIText {
             }
             let (text, opt_fe_sequence) = FeEscapeSequence::extract_from(sequence);
             if let Some(fe_sequence) = opt_fe_sequence {
-                self
-                    .text
-                    .push(ANSITextElement::EscapeSequence(fe_sequence));
+                self.text.push(ANSITextElement::EscapeSequence(fe_sequence));
             }
             self.text.push(ANSITextElement::Text(text))
         }
