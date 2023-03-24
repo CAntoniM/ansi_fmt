@@ -25,13 +25,41 @@ impl Color {
         };
     }
 
-    pub fn from_args(args: &Vec<u8>) -> Color {
-        todo!("Implement Args based Color generation");
-        return Color {
-            red: 0,
-            green: 0,
-            blue: 0,
+    pub fn from_args(args: &mut Vec<u8>) -> Option<Color> {
+        return match args.pop() {
+            Some(arg) => match arg {
+                2 => {
+                    // 24bit color EASY
+                    None
+                }
+                5 => {
+                    // 8Bit Color (bit shift) :throwing_up_emoji:
+                    None
+                }
+                _ => None
+
+            },
+            None => None,
         };
+    }
+
+    pub fn make_bright(mut color: Color) -> Color {
+        if color.green == 0 && color.blue == 0 && color.red == 0 {
+            color.green = 128;
+            color.blue = 128;
+            color.red = 128;
+            return color;
+        }
+        if color.blue != 0 {
+            color.blue = 255
+        }
+        if color.green != 0 {
+            color.green = 255
+        }
+        if color.red != 0 {
+            color.red = 255
+        }
+        return color;
     }
 }
 
@@ -104,16 +132,16 @@ impl SelectGraphicRendition {
                 30..=37 => Some(SelectGraphicRendition::ForgroundColor(Some(
                     Color::from_index(arg),
                 ))),
-                38 => Some(SelectGraphicRendition::ForgroundColor(Some(
+                38 => Some(SelectGraphicRendition::ForgroundColor(
                     Color::from_args(args),
-                ))),
+                )),
                 39 => Some(SelectGraphicRendition::ForgroundColor(None)),
                 40..=47 => Some(SelectGraphicRendition::BackgroundColor(Some(
                     Color::from_index(arg),
                 ))),
-                48 => Some(SelectGraphicRendition::ForgroundColor(Some(
+                48 => Some(SelectGraphicRendition::ForgroundColor(
                     Color::from_args(args),
-                ))),
+                )),
                 49 => Some(SelectGraphicRendition::ForgroundColor(None)),
                 50 => Some(SelectGraphicRendition::DisableProportionalSpacing),
                 51 => Some(SelectGraphicRendition::Framed),
@@ -121,24 +149,25 @@ impl SelectGraphicRendition {
                 53 => Some(SelectGraphicRendition::Overlined),
                 54 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
                 55 => Some(SelectGraphicRendition::NotOverlined),
-                58 => Some(SelectGraphicRendition::SetUnderlineColor(Some(
+                58 => Some(SelectGraphicRendition::SetUnderlineColor(
                     Color::from_args(args),
-                ))),
+                )),
                 59 => Some(SelectGraphicRendition::SetUnderlineColor(None)),
-                60 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
-                61 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
-                62 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
-                63 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
-                64 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
-                65 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
-                74 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
-                75 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                60 => Some(SelectGraphicRendition::IdeogramUnderline),
+                61 => Some(SelectGraphicRendition::IdeogramDoubleUnderline),
+                62 => Some(SelectGraphicRendition::IdeogramOverline),
+                63 => Some(SelectGraphicRendition::IdeogramDoubleOverline),
+                64 => Some(SelectGraphicRendition::IdeogramStressMarking),
+                65 => Some(SelectGraphicRendition::NoIdeogram),
+                74 => Some(SelectGraphicRendition::Superscript),
+                75 => Some(SelectGraphicRendition::Subscript),
+                75 => Some(SelectGraphicRendition::NethirSuperOrSubScript),
                 90..=97 => Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::from_index(arg),
+                    Color::make_bright(Color::from_index(arg)),
                 ))),
                 100..=107 => {
                     return Some(SelectGraphicRendition::BackgroundColor(Some(
-                        Color::from_index(arg),
+                        Color::make_bright(Color::from_index(arg)),
                     )))
                 }
                 _ => None,
