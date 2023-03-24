@@ -4,88 +4,169 @@ use std::{
     fs::File,
     io::{self, BufRead},
     path::PathBuf,
-};
-
-/// This is the map that is responceable for relating the character given as
-/// the FE escape seqeunce to the function that is designed to process them.
-///
-/// These functions should remove the escape seqeunce from the String given
-/// and if they can come out with some formatting change this can be adding or
-/// removing the specified format
-static FE_HANDLERS: phf::Map<char, fn(String, usize) -> (String, Vec<(Fromatting, bool)>)> = phf_map! {
-    '[' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
-        let mut can_copy = false;
-        let mut output_string = String::new();
-        output_string = line[..(start - 1)].to_string();
-        let mut chars = line.chars();
-        match chars.nth(start+2 ).unwrap() {
-
-            _ => {
-                todo!("Implement a unexpected handler")
-            }
-        };
-
-
-        return (output_string,Vec::new())
-    },
-    'N' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
-        let mut can_copy = false;
-        let mut output_string = String::new();
-        for (index, character) in line.chars().enumerate() {
-            if index < start {
-                output_string.push(character);
-                continue;
-            }
-            if character == 'N'{
-                can_copy = true;
-            }
-            if can_copy {
-                output_string.push(character);
-            }
-        }
-        return (output_string,Vec::new())
-    },
-    'O' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
-        let mut can_copy = false;
-        let mut output_string = String::new();
-        for (index, character) in line.chars().enumerate() {
-            if index < start {
-                output_string.push(character);
-                continue;
-            }
-            if character == 'O'{
-                can_copy = true;
-            }
-            if can_copy {
-                output_string.push(character);
-            }
-        }
-        return (output_string,Vec::new())
-    },
-    'P' => |line: String, start: usize| -> (String,Vec<(Fromatting,bool)>) {
-        let mut can_copy = false;
-        let mut expected_next_char: Option<char> = None;
-        let mut output_string = String::new();
-        for (index, character) in line.chars().enumerate() {
-            if index < start {
-                output_string.push(character);
-                continue;
-            }
-            if character == '\u{001b}' {
-                expected_next_char = Some('\\')
-            }
-            if Some('\\') == expected_next_char {
-                can_copy = true
-            }
-            if can_copy {
-                output_string.push(character);
-            }
-        }
-        return (output_string,Vec::new())
-    },
+    str::Chars,
 };
 
 static ESC: char = 0x1B as char;
+
+struct Color {
+    red: u8,
+    green: u8,
+    blue: u8,
+}
+
+enum SelectGraphicRendition {
+    Normal,
+    Bold,
+    Faint,
+    Italic,
+    Underline,
+    SlowBlink,
+    RapidBlink,
+    Invert,
+    Conceal,
+    CrossedOut,
+    PrimaryFont,
+    AlternativeFont(u8),
+    DoublyUnderlined,
+    NormalIntensity,
+    NotItalic,
+    NotUnderlined,
+    NotBlinking,
+    ProportionalSpacing,
+    NotReveresed,
+    Reveal,
+    NotCrossedOut,
+    ForgroundColor(Color),
+    DefaultForgroundColor,
+    BackgroundColor(Color),
+    DefaultBackgroundColor,
+    DisableProportionalSpacing,
+    Framed,
+    Encircled,
+    Overlined,
+    NeitherFramedNorEncircled,
+    NotOverlined,
+    SetUnderlineColor(Color),
+    DefaultUnderlineColor,
+    IdeogramUnderline,
+    IdeogramDoubleUnderline,
+    IdeogramOverline,
+    IdeogramDoubleOverline,
+    IdeogramStressMarking,
+    NoIdeogram,
+    Superscript,
+    Subscript,
+    NethirSuperOrSubScript,
+}
+
+enum ControlSequences {
+    CursorUp(u16),
+    CursorDown(u16),
+    CursorForward(u16),
+    CursorBack(u16),
+    CursorNextLine(u16),
+    CursorPreviousLine(u16),
+    CursorHorizontalAbsolute(u16),
+    CursorPosition(u16, u16),
+    EraseInDisplay(u16),
+    EraseInLine(u16),
+    ScrollUp(u16),
+    ScrollDown(u16),
+    HorizonalVerticalPosition(u16, u16),
+    SelectGraphicalRendition(SelectGraphicRendition),
+    AUXPortOn,
+    AUXPortOff,
+    DeviceStatusReport,
+}
+
+impl ControlSequences {
+    pub fn from(chars: &mut Chars) -> ControlSequences {
+        return ControlSequences::DeviceStatusReport;
+    }
+}
+
+enum FeEscapeSequences {
+    SingleShiftTwo,
+    SingleShiftThree,
+    DeviceControlString,
+    ControlSequence(ControlSequences),
+    StartOfString,
+    PrivacyMessage,
+    ApplicationProgramCommand,
+}
+
+impl FeEscapeSequences {
+    pub fn from(chars: &mut Chars) -> Option<FeEscapeSequences> {
+        return match chars.next() {
+            Some(c) => match c {
+                'N' | 'n' => Some(FeEscapeSequences::SingleShiftTwo),
+                'O' | 'o' => Some(FeEscapeSequences::SingleShiftThree),
+                'P' | 'p' => Some(FeEscapeSequences::DeviceControlString),
+                '[' => Some(FeEscapeSequences::ControlSequence(ControlSequences::from(
+                    chars,
+                ))),
+                'X' | 'x' => Some(FeEscapeSequences::StartOfString),
+                '^' => Some(FeEscapeSequences::PrivacyMessage),
+                '_' => Some(FeEscapeSequences::ApplicationProgramCommand),
+                _ => None,
+            },
+            None => None,
+        };
+    }
+
+    pub fn extract_from(string: &str) -> (String, Option<FeEscapeSequences>) {
+        let mut chars = string.chars();
+        if chars.next().unwrap() == ESC {
+            let esc_seq = FeEscapeSequences::from(&mut chars);
+            return (chars.as_str().to_string(), esc_seq);
+        }
+        return (string.to_string(), None);
+    }
+}
+
+enum ANSITextElement {
+    Text(String),
+    EscapeSequence(FeEscapeSequences),
+}
+
+struct ANSIText {
+    text: Vec<ANSITextElement>,
+}
+
+impl ANSIText {
+    pub fn from(text: String) -> ANSIText {
+        let sequences = text.split(ESC);
+        let mut text_buffer: ANSIText = ANSIText { text: Vec::new() };
+        for sequence in sequences {
+            if sequence.len() <= 0 {
+                continue;
+            }
+            let (text, opt_fe_sequence) = FeEscapeSequences::extract_from(sequence);
+            if let Some(fe_sequence) = opt_fe_sequence {
+                text_buffer
+                    .text
+                    .push(ANSITextElement::EscapeSequence(fe_sequence));
+            }
+            text_buffer.text.push(ANSITextElement::Text(text))
+        }
+        return text_buffer;
+    }
+}
+
+/// This represents the styling of text that we support as part of our output
+/// The idea is that all writers must be able to output these particular styles
+/// with out worrying about the other support by ANSI
+#[derive(PartialEq, Eq, PartialOrd)]
+enum Fromatting {
+    Bold,
+    Faint,
+    Italic,
+    Underline,
+    CrossedOut,
+    ForgroundColor,
+    BackgroundColor,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 enum OutputFormat {
@@ -109,109 +190,10 @@ struct Cli {
     paths: Vec<PathBuf>,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct TextPosistion {
-    line: usize,
-    char: usize,
-}
-
-impl TextPosistion {
-    pub fn new() -> TextPosistion {
-        TextPosistion { line: 0, char: 0 }
-    }
-}
-#[derive(PartialEq, Eq, PartialOrd)]
-enum Fromatting {
-    Default,
-    Bold,
-}
-
-struct FormatBlock {
-    start_posistion: TextPosistion,
-    end_posistion: TextPosistion,
-    style: Fromatting,
-}
-
-impl FormatBlock {
-    pub fn new() -> FormatBlock {
-        FormatBlock {
-            start_posistion: TextPosistion::new(),
-            end_posistion: TextPosistion::new(),
-            style: Fromatting::Default,
-        }
-    }
-}
-
-struct FormatedTextFile {
-    text: Vec<String>,
-    style_blocks: Vec<FormatBlock>,
-}
-
-impl FormatedTextFile {
-    pub fn new() -> FormatedTextFile {
-        FormatedTextFile {
-            text: Vec::new(),
-            style_blocks: Vec::new(),
-        }
-    }
-
-    pub fn get_formatting_at(&mut self, index: &TextPosistion) -> Vec<FormatBlock> {
-        return Vec::new();
-    }
-
-    pub fn read_line(&mut self, mut line: String) {
-        for escape_sequence in [r"\e", r"\033", r"\u001b", r"\x1B"] {
-            line = line.replace(escape_sequence, ESC.to_string().as_str());
-        }
-
-        while let Some(index) = line.find(ESC) {
-            if let Some(handler) = FE_HANDLERS.get(&(line.as_bytes()[index + 1] as char)) {
-                let option_formats: Vec<(Fromatting, bool)>;
-                (line, option_formats) = handler(line.clone(), index);
-                for option_format in option_formats {
-                    let (format, is_removing) = option_format;
-                    let current_pos = TextPosistion {
-                        line: self.text.len(),
-                        char: index,
-                    };
-                    if is_removing && format != Fromatting::Default {
-                        let fmts = self.get_formatting_at(&current_pos);
-                        for mut fmt in fmts {
-                            if fmt.style == format {
-                                fmt.end_posistion = TextPosistion {
-                                    line: self.text.len(),
-                                    char: index,
-                                };
-                                break;
-                            }
-                        }
-                    } else if is_removing && format == Fromatting::Default {
-                        for mut fmt in self.get_formatting_at(&current_pos) {
-                            fmt.end_posistion = current_pos;
-                        }
-                    } else {
-                        self.style_blocks.push(FormatBlock {
-                            start_posistion: current_pos,
-                            end_posistion: TextPosistion { line: 0, char: 0 },
-                            style: format,
-                        })
-                    }
-                }
-            }
-        }
-        self.text.push(line);
-    }
-}
-
 fn main() {
     let cli = Cli::parse();
     for path in cli.paths.iter() {
         let file = File::open(path).unwrap();
         let reader = io::BufReader::new(file);
-        let mut fmt_txt = FormatedTextFile::new();
-
-        for line in reader.lines() {
-            fmt_txt.read_line(line.unwrap());
-        }
     }
 }
