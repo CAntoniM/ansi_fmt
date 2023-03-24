@@ -163,6 +163,7 @@ impl Color {
 
 /// this is a representation of the SelectGraphicsRendidtion sequences that are commonly used in terminals.
 /// we should aim to be as accurate to the most terminals as possible and cover as many values as possible
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum SelectGraphicRendition {
     Normal,
     Bold,
@@ -214,14 +215,14 @@ impl SelectGraphicRendition {
             Some(arg) => match arg {
                 0 => Some(SelectGraphicRendition::Normal),
                 1 => Some(SelectGraphicRendition::Bold),
-                2 => Some(SelectGraphicRendition::Italic),
-                3 => Some(SelectGraphicRendition::Faint),
-                4 => Some(SelectGraphicRendition::Italic),
-                5 => Some(SelectGraphicRendition::Underline),
-                6 => Some(SelectGraphicRendition::SlowBlink),
-                7 => Some(SelectGraphicRendition::RapidBlink),
-                8 => Some(SelectGraphicRendition::Invert),
-                9 => Some(SelectGraphicRendition::Conceal),
+                2 => Some(SelectGraphicRendition::Faint),
+                3 => Some(SelectGraphicRendition::Italic),
+                4 => Some(SelectGraphicRendition::Underline),
+                5 => Some(SelectGraphicRendition::SlowBlink),
+                6 => Some(SelectGraphicRendition::RapidBlink),
+                7 => Some(SelectGraphicRendition::Invert),
+                8 => Some(SelectGraphicRendition::Conceal),
+                9 => Some(SelectGraphicRendition::CrossedOut),
                 10..=20 => Some(SelectGraphicRendition::Font(arg - 10)),
                 21 => Some(SelectGraphicRendition::DoublyUnderlined),
                 22 => Some(SelectGraphicRendition::NormalIntensity),
@@ -242,10 +243,10 @@ impl SelectGraphicRendition {
                 40..=47 => Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
                     arg - 40,
                 ))),
-                48 => Some(SelectGraphicRendition::ForgroundColor(Color::from_args(
+                48 => Some(SelectGraphicRendition::BackgroundColor(Color::from_args(
                     args,
                 ))),
-                49 => Some(SelectGraphicRendition::ForgroundColor(None)),
+                49 => Some(SelectGraphicRendition::BackgroundColor(None)),
                 50 => Some(SelectGraphicRendition::DisableProportionalSpacing),
                 51 => Some(SelectGraphicRendition::Framed),
                 52 => Some(SelectGraphicRendition::Encircled),
@@ -262,8 +263,8 @@ impl SelectGraphicRendition {
                 63 => Some(SelectGraphicRendition::IdeogramDoubleOverline),
                 64 => Some(SelectGraphicRendition::IdeogramStressMarking),
                 65 => Some(SelectGraphicRendition::NoIdeogram),
-                74 => Some(SelectGraphicRendition::Superscript),
-                75 => Some(SelectGraphicRendition::Subscript),
+                73 => Some(SelectGraphicRendition::Superscript),
+                74 => Some(SelectGraphicRendition::Subscript),
                 75 => Some(SelectGraphicRendition::NethirSuperOrSubScript),
                 90..=97 => match Color::from_index(arg - 90) {
                     Some(c) => Some(SelectGraphicRendition::ForgroundColor(Some(
@@ -271,7 +272,7 @@ impl SelectGraphicRendition {
                     ))),
                     None => Some(SelectGraphicRendition::ForgroundColor(None)),
                 },
-                100..=107 => match Color::from_index(arg - 90) {
+                100..=107 => match Color::from_index(arg - 100) {
                     Some(c) => Some(SelectGraphicRendition::BackgroundColor(Some(
                         Color::make_bright(c),
                     ))),
@@ -607,7 +608,9 @@ impl Text {
 
 #[cfg(test)]
 mod ansi_test {
-    use super::Color;
+    use std::collections::HashMap;
+
+    use super::{Color, SelectGraphicRendition};
 
     #[test]
     fn color_back() {
@@ -802,8 +805,113 @@ mod ansi_test {
                     red: (c >> 5) * 32,
                     green: ((c & 28) >> 2) * 32,
                     blue: (c & 3) * 32,
-                })
+                    })
             )
         }
     }
+
+    #[test]
+    fn sgr_from() {
+        let results = HashMap::from([
+            (0 as u8, Some(SelectGraphicRendition::Normal)),
+            (1 as u8, Some(SelectGraphicRendition::Bold)),
+            (2 as u8, Some(SelectGraphicRendition::Faint)),
+            (3 as u8, Some(SelectGraphicRendition::Italic)),
+            (4 as u8, Some(SelectGraphicRendition::Underline)),
+            (5 as u8, Some(SelectGraphicRendition::SlowBlink)),
+            (6 as u8, Some(SelectGraphicRendition::RapidBlink)),
+            (7 as u8, Some(SelectGraphicRendition::Invert)),
+            (8 as u8, Some(SelectGraphicRendition::Conceal)),
+            (9 as u8, Some(SelectGraphicRendition::CrossedOut)),
+            (10 as u8, Some(SelectGraphicRendition::Font(0))),
+            (11 as u8, Some(SelectGraphicRendition::Font(1))),
+            (12 as u8, Some(SelectGraphicRendition::Font(2))),
+            (13 as u8, Some(SelectGraphicRendition::Font(3))),
+            (14 as u8, Some(SelectGraphicRendition::Font(4))),
+            (15 as u8, Some(SelectGraphicRendition::Font(5))),
+            (16 as u8, Some(SelectGraphicRendition::Font(6))),
+            (17 as u8, Some(SelectGraphicRendition::Font(7))),
+            (18 as u8, Some(SelectGraphicRendition::Font(8))),
+            (19 as u8, Some(SelectGraphicRendition::Font(9))),
+            (20 as u8, Some(SelectGraphicRendition::Font(10))),
+            (21 as u8, Some(SelectGraphicRendition::DoublyUnderlined)),
+            (22 as u8, Some(SelectGraphicRendition::NormalIntensity)),
+            (23 as u8, Some(SelectGraphicRendition::NotItalic)),
+            (24 as u8, Some(SelectGraphicRendition::NotUnderlined)),
+            (25 as u8, Some(SelectGraphicRendition::NotBlinking)),
+            (26 as u8, Some(SelectGraphicRendition::ProportionalSpacing)),
+            (27 as u8, Some(SelectGraphicRendition::NotReveresed)),
+            (28 as u8, Some(SelectGraphicRendition::Reveal)),
+            (29 as u8, Some(SelectGraphicRendition::NotCrossedOut)),
+            (30 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_index(0)))),
+            (31 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_index(1)))),
+            (32 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_index(2)))),
+            (33 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_index(3)))),
+            (34 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_index(4)))),
+            (35 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_index(5)))),
+            (36 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_index(6)))),
+            (37 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_index(7)))),
+            (38 as u8, Some(SelectGraphicRendition::ForgroundColor(Color::from_args(&mut Vec::new())))),
+            (39 as u8, Some(SelectGraphicRendition::ForgroundColor(None))),
+            (40 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_index(0)))),
+            (41 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_index(1)))),
+            (42 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_index(2)))),
+            (43 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_index(3)))),
+            (44 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_index(4)))),
+            (45 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_index(5)))),
+            (46 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_index(6)))),
+            (47 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_index(7)))),
+            (48 as u8, Some(SelectGraphicRendition::BackgroundColor(Color::from_args(&mut Vec::new())))),
+            (49 as u8, Some(SelectGraphicRendition::BackgroundColor(None))),
+            (50 as u8, Some(SelectGraphicRendition::DisableProportionalSpacing)),
+            (51 as u8, Some(SelectGraphicRendition::Framed)),
+            (52 as u8, Some(SelectGraphicRendition::Encircled)),
+            (53 as u8, Some(SelectGraphicRendition::Overlined)),
+            (54 as u8, Some(SelectGraphicRendition::NeitherFramedNorEncircled)),
+            (55 as u8, Some(SelectGraphicRendition::NotOverlined)),
+            (58 as u8, Some(SelectGraphicRendition::SetUnderlineColor(Color::from_args(&mut Vec::new())))),
+            (59 as u8, Some(SelectGraphicRendition::SetUnderlineColor(None))),
+            (60 as u8, Some(SelectGraphicRendition::IdeogramUnderline)),
+            (61 as u8, Some(SelectGraphicRendition::IdeogramDoubleUnderline)),
+            (62 as u8, Some(SelectGraphicRendition::IdeogramOverline)),
+            (63 as u8, Some(SelectGraphicRendition::IdeogramDoubleOverline)),
+            (64 as u8, Some(SelectGraphicRendition::IdeogramStressMarking)),
+            (65 as u8, Some(SelectGraphicRendition::NoIdeogram)),
+            (73 as u8, Some(SelectGraphicRendition::Superscript)),
+            (74 as u8, Some(SelectGraphicRendition::Subscript)),
+            (75 as u8, Some(SelectGraphicRendition::NethirSuperOrSubScript)),
+            (90 as u8, Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(Color::Black()))))),
+            (91 as u8, Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(Color::Red()))))),
+            (92 as u8, Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(Color::Green()))))),
+            (93 as u8, Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(Color::Yellow()))))),
+            (94 as u8, Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(Color::Blue()))))),
+            (95 as u8, Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(Color::Magenta()))))),
+            (96 as u8, Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(Color::Cyan()))))),
+            (97 as u8, Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(Color::White()))))),
+            (100 as u8, Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(Color::Black()))))),
+            (101 as u8, Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(Color::Red()))))),
+            (102 as u8, Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(Color::Green()))))),
+            (103 as u8, Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(Color::Yellow()))))),
+            (104 as u8, Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(Color::Blue()))))),
+            (105 as u8, Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(Color::Magenta()))))),
+            (106 as u8, Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(Color::Cyan()))))),
+            (107 as u8, Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(Color::White()))))),
+            ]
+        );
+        for i in 0..=255 as u8 {
+            let mut args: Vec<u8> = Vec::new();
+            args.push(i);
+            let result = SelectGraphicRendition::from(&mut args);
+            match results.get(&i) {
+                Some(expected_result) => {
+                    assert_eq!(&result,expected_result);
+                }
+                None => {
+                    assert_eq!(result,None)
+                }
+            }
+        }
+    }
+
+
 }
