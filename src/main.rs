@@ -1,7 +1,7 @@
 use clap::{Parser, ValueEnum};
 use std::{
     fs::File,
-    io::{self, Read, BufRead},
+    io::{self, BufRead, Read},
     path::PathBuf,
 };
 

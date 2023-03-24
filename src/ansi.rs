@@ -4,6 +4,7 @@ use std::str::Chars;
 static ESC: char = 0x1B as char;
 
 /// A simple reprensentation of a 24 bit color code used is most apps
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 struct Color {
     red: u8,
     green: u8,
@@ -11,9 +12,19 @@ struct Color {
 }
 
 impl Color {
+    pub fn red(&self) -> u8 {
+        return self.red.clone();
+    }
 
+    pub fn green(&self) -> u8 {
+        return self.green.clone();
+    }
+
+    pub fn blue(&self) -> u8 {
+        return self.blue.clone();
+    }
     /// Returns a Color that represents black
-    pub fn black() -> Color {
+    pub fn Black() -> Color {
         Color {
             red: 0,
             green: 0,
@@ -22,7 +33,7 @@ impl Color {
     }
 
     /// Returns a Color that represents red
-    pub fn red() -> Color {
+    pub fn Red() -> Color {
         Color {
             red: 128,
             green: 0,
@@ -31,7 +42,7 @@ impl Color {
     }
 
     /// Returns a Color that represents green
-    pub fn green() -> Color {
+    pub fn Green() -> Color {
         Color {
             red: 0,
             green: 128,
@@ -40,7 +51,7 @@ impl Color {
     }
 
     /// Returns a Color that represents yellow
-    pub fn yellow() -> Color {
+    pub fn Yellow() -> Color {
         Color {
             red: 128,
             green: 128,
@@ -49,7 +60,7 @@ impl Color {
     }
 
     /// Returns a Color that represents blue
-    pub fn blue() -> Color {
+    pub fn Blue() -> Color {
         Color {
             red: 0,
             green: 0,
@@ -58,7 +69,7 @@ impl Color {
     }
 
     /// Returns a Color that represents magenta
-    pub fn magenta() -> Color {
+    pub fn Magenta() -> Color {
         Color {
             red: 128,
             green: 0,
@@ -67,7 +78,7 @@ impl Color {
     }
 
     /// Returns a Color that represents cyan
-    pub fn cyan() -> Color {
+    pub fn Cyan() -> Color {
         Color {
             red: 0,
             green: 128,
@@ -76,7 +87,7 @@ impl Color {
     }
 
     /// Returns a Color that represents white
-    pub fn white() -> Color {
+    pub fn White() -> Color {
         Color {
             red: 192,
             green: 192,
@@ -86,25 +97,25 @@ impl Color {
 
     pub fn from_index(index: u8) -> Option<Color> {
         return match index {
-            0 => Some(Color::black()),
-            1 => Some(Color::red()),
-            2 => Some(Color::green()),
-            3 => Some(Color::yellow()),
-            4 => Some(Color::blue()),
-            5 => Some(Color::magenta()),
-            6 => Some(Color::cyan()),
-            7 => Some(Color::white()),
+            0 => Some(Color::Black()),
+            1 => Some(Color::Red()),
+            2 => Some(Color::Green()),
+            3 => Some(Color::Yellow()),
+            4 => Some(Color::Blue()),
+            5 => Some(Color::Magenta()),
+            6 => Some(Color::Cyan()),
+            7 => Some(Color::White()),
             _ => None,
         };
     }
 
     /// Converts the args used as part of SelectGraphicsRendition into a 24bit Color variable
-    /// 
+    ///
     /// The function expects that the user is passing in arguments in the on of the following structure
-    /// 
+    ///
     /// 1. a 2 followed by a red green or blue
     /// 2. a 5 followed by a 8 bit color code
-    /// 
+    ///
     /// if arguments are not provided it will assume a value or 0 for these arguments it will only
     /// return 0 if the color mode provided as the first argument is not present or recognised
     pub fn from_args(args: &mut Vec<u8>) -> Option<Color> {
@@ -121,7 +132,7 @@ impl Color {
                         green: ((color & 28) >> 2) * 32,
                         blue: (color & 3) * 32,
                     }),
-                    None => Some(Color::black()),
+                    None => Some(Color::Black()),
                 },
                 _ => None,
             },
@@ -194,8 +205,7 @@ pub enum SelectGraphicRendition {
 }
 
 impl SelectGraphicRendition {
-    
-    /// This will parse the args of the SelectGraphics rendition into the concreate values used internally 
+    /// This will parse the args of the SelectGraphics rendition into the concreate values used internally
     /// This is expected to that either a number to represent a particular graphics change or non will be
     /// proivded at which point it will revert to the default settings
     pub fn from(args: &mut Vec<u8>) -> Option<SelectGraphicRendition> {
@@ -307,7 +317,7 @@ pub enum ControlSequence {
 
 impl ControlSequence {
     /// This will conver the text representation of the arguments given in the ebnf described below and return them as a series of int arguments.
-    /// 
+    ///
     /// ```ebnf
     /// digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
     /// int = { digit }
@@ -325,7 +335,7 @@ impl ControlSequence {
         return Vec::new();
     }
     /// This will parse the text in the form described by the ebnf below into its internal ControlSequence representation if it is possible.
-    /// 
+    ///
     /// ```ebf
     /// digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
     /// int = { digit }
@@ -341,8 +351,8 @@ impl ControlSequence {
                     let mut args = ControlSequence::get_args(&mut text_buffer);
                     return match SelectGraphicRendition::from(&mut args) {
                         Some(sgr) => Some(ControlSequence::SelectGraphicalRendition(sgr)),
-                        None => None
-                    }
+                        None => None,
+                    };
                 }
                 'A' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
@@ -465,7 +475,7 @@ impl ControlSequence {
     }
 }
 
-/// This is the internal reprenstation of ANSI FeEscapeSequences 
+/// This is the internal reprenstation of ANSI FeEscapeSequences
 pub enum FeEscapeSequence {
     SingleShiftTwo,
     SingleShiftThree,
@@ -478,8 +488,8 @@ pub enum FeEscapeSequence {
 }
 
 impl FeEscapeSequence {
-    /// Takes in a string following the below ebnf and returns out our internal FeEscapeSequence 
-    /// 
+    /// Takes in a string following the below ebnf and returns out our internal FeEscapeSequence
+    ///
     /// ```ebf
     /// digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
     /// int = { digit }
@@ -539,11 +549,11 @@ impl Text {
     pub fn from(text: String) -> Text {
         let mut ansi_text = Text::new();
         ansi_text.read(text);
-        return ansi_text
+        return ansi_text;
     }
 
     /// This allows us to read in a complient ANSI String into our internal representation it does this by parsing out the ansi escape sequences that follow the ebnf given below
-    /// 
+    ///
     /// ```ebnf
     /// digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
     /// int = { digit }
@@ -564,7 +574,7 @@ impl Text {
     /// digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
     ///
     /// symbol = "[" | "]" | "{" | "}" | "(" | ")" | "<" | ">"
-    ///         | "'" | '"' | "=" | "|" | "." | "," | ";" | "-" 
+    ///         | "'" | '"' | "=" | "|" | "." | "," | ";" | "-"
     ///         | "+" | "*" | "?" | "\n" | "\t" | "\r" | "\f" | "\b" ;
     ///
     /// character = letter | digit | symbol | "_" | " " ;
@@ -592,5 +602,194 @@ impl Text {
     /// This clears the buffer of that is held internally is the same as allocating a new struct however it allocation than the creating a new vector.
     pub fn flush(&mut self) {
         self.text.clear()
+    }
+}
+
+#[cfg(test)]
+mod ansi_test {
+    use super::Color;
+
+    #[test]
+    fn color_back() {
+        let color = Color::Black();
+        assert_eq!(color.red(), 0);
+        assert_eq!(color.green(), 0);
+        assert_eq!(color.blue(), 0);
+    }
+
+    #[test]
+    fn color_red() {
+        let color = Color::Red();
+        assert_eq!(color.red(), 128);
+        assert_eq!(color.green(), 0);
+        assert_eq!(color.blue(), 0);
+    }
+
+    #[test]
+    fn color_green() {
+        let color = Color::Green();
+        assert_eq!(color.red(), 0);
+        assert_eq!(color.green(), 128);
+        assert_eq!(color.blue(), 0);
+    }
+
+    #[test]
+    fn color_blue() {
+        let color = Color::Blue();
+        assert_eq!(color.red(), 0);
+        assert_eq!(color.green(), 0);
+        assert_eq!(color.blue(), 128);
+    }
+
+    #[test]
+    fn color_yellow() {
+        let color = Color::Yellow();
+        assert_eq!(color.red(), 128);
+        assert_eq!(color.green(), 128);
+        assert_eq!(color.blue(), 0);
+    }
+
+    #[test]
+    fn color_magenta() {
+        let color = Color::Magenta();
+        assert_eq!(color.red(), 128);
+        assert_eq!(color.green(), 0);
+        assert_eq!(color.blue(), 128);
+    }
+
+    #[test]
+    fn color_cyan() {
+        let color = Color::Cyan();
+        assert_eq!(color.red(), 0);
+        assert_eq!(color.green(), 128);
+        assert_eq!(color.blue(), 128);
+    }
+
+    #[test]
+    fn color_white() {
+        let color = Color::White();
+        assert_eq!(color.red(), 192);
+        assert_eq!(color.green(), 192);
+        assert_eq!(color.blue(), 192);
+    }
+
+    #[test]
+    fn color_make_bright() {
+        let tests = [
+            (
+                Color::Black(),
+                Color {
+                    red: 128,
+                    green: 128,
+                    blue: 128,
+                },
+            ),
+            (
+                Color::Blue(),
+                Color {
+                    red: 0,
+                    green: 0,
+                    blue: 255,
+                },
+            ),
+            (
+                Color::Green(),
+                Color {
+                    red: 0,
+                    green: 255,
+                    blue: 0,
+                },
+            ),
+            (
+                Color::Red(),
+                Color {
+                    red: 255,
+                    green: 0,
+                    blue: 0,
+                },
+            ),
+            (
+                Color::Yellow(),
+                Color {
+                    red: 255,
+                    green: 255,
+                    blue: 0,
+                },
+            ),
+            (
+                Color::Cyan(),
+                Color {
+                    red: 0,
+                    green: 255,
+                    blue: 255,
+                },
+            ),
+            (
+                Color::Magenta(),
+                Color {
+                    red: 255,
+                    green: 0,
+                    blue: 255,
+                },
+            ),
+            (
+                Color::White(),
+                Color {
+                    red: 255,
+                    green: 255,
+                    blue: 255,
+                },
+            ),
+        ];
+        for test in tests {
+            let (mut color, expected_result) = test;
+            color = Color::make_bright(color);
+            assert_eq!(color.red(), expected_result.red());
+            assert_eq!(color.green(), expected_result.green());
+            assert_eq!(color.blue(), expected_result.blue());
+        }
+    }
+
+    #[test]
+    fn color_from_index() {
+        let tests = [
+            (0, Some(Color::Black())),
+            (1, Some(Color::Red())),
+            (2, Some(Color::Green())),
+            (3, Some(Color::Yellow())),
+            (4, Some(Color::Blue())),
+            (5, Some(Color::Magenta())),
+            (6, Some(Color::Cyan())),
+            (7, Some(Color::White())),
+            (8, None),
+        ];
+        for test in tests {
+            let (index, expected_result) = test;
+            assert_eq!(Color::from_index(index), expected_result);
+        }
+    }
+
+    #[test]
+    fn color_from_args() {
+        let base_8_bit = vec![2 as u8];
+        for r in 0..=255 as u8 {
+            for g in 0..=255 as u8 {
+                for b in 0..=255 as u8 {
+                    let mut args = base_8_bit.clone();
+                    args.push(r);
+                    args.push(g);
+                    args.push(b);
+                    args.reverse();
+                    assert_eq!(
+                        Color::from_args(&mut args),
+                        Some(Color {
+                            red: r,
+                            green: g,
+                            blue: b
+                        })
+                    )
+                }
+            }
+        }
     }
 }
