@@ -99,8 +99,16 @@ enum ControlSequence {
 }
 
 impl ControlSequence {
-    pub fn get_args(text: &String) -> Vec<u16> {
-        todo!("Implemnt args parsing");
+    pub fn get_args(text: &mut String) -> Vec<u16> {
+        let mut args: Vec<u16> = Vec::new();
+        for arg_str in text.split(';') {
+            match arg_str.parse::<u16>() {
+                Ok(arg) => {
+                    args.push(arg)
+                }
+                Err(_) => {}
+            }
+        }
         return Vec::new();
     }
     pub fn from(chars: &mut Chars) -> Option<ControlSequence> {
@@ -109,87 +117,87 @@ impl ControlSequence {
             match c {
                 'm' => {}
                 'A' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorUp(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'B' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorDown(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'C' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorForward(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'D' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorBack(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'E' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorNextLine(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'F' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorPreviousLine(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'G' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorHorizontalAbsolute(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'H' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorPosition(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                         args.get(1).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'J' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::EraseInDisplay(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'K' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::EraseInLine(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'S' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::ScrollUp(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'T' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::ScrollDown(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'f' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::HorizonalVerticalPosition(
                         args.get(0).unwrap_or(&(1 as u16)).clone(),
                         args.get(1).unwrap_or(&(1 as u16)).clone(),
                     ));
                 }
                 'i' => {
-                    let args = ControlSequence::get_args(&text_buffer);
+                    let args = ControlSequence::get_args(&mut text_buffer);
                     return match args.get(0) {
                         Some(arg) => match arg {
                             5 => Some(ControlSequence::AUXPortOn),
@@ -263,11 +271,8 @@ impl FeEscapeSequence {
 
     pub fn extract_from(string: &str) -> (String, Option<FeEscapeSequence>) {
         let mut chars = string.chars();
-        if chars.next().unwrap() == ESC {
-            let esc_seq = FeEscapeSequence::from(&mut chars);
-            return (chars.as_str().to_string(), esc_seq);
-        }
-        return (string.to_string(), None);
+        let esc_seq = FeEscapeSequence::from(&mut chars);
+        return (chars.as_str().to_string(), esc_seq);
     }
 }
 
@@ -282,8 +287,9 @@ struct ANSIText {
 
 impl ANSIText {
     pub fn from(text: String) -> ANSIText {
-        let sequences = text.split(ESC);
+        let mut sequences = text.split(ESC);
         let mut text_buffer: ANSIText = ANSIText { text: Vec::new() };
+        text_buffer.text.push(ANSITextElement::Text(sequences.next().unwrap_or("").to_string()));
         for sequence in sequences {
             if sequence.len() <= 0 {
                 continue;
