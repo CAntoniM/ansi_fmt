@@ -16,28 +16,69 @@ struct Color {
 }
 
 impl Color {
-    pub fn from_index(index: u8) -> Color {
-        todo!("Implement Index based Color generation");
-        return Color {
-            red: 0,
-            green: 0,
-            blue: 0,
-        };
+    pub fn black() -> Color {
+        Color { red: 0, green: 0, blue: 0 }
+    }
+
+    pub fn red() -> Color {
+        Color { red: 128, green: 0, blue: 0 }
+    }
+
+    pub fn green() -> Color {
+        Color { red: 0, green: 128, blue: 0 }
+    }
+
+    pub fn yellow() -> Color {
+        Color { red: 128, green: 128, blue: 0 }
+    }
+
+    pub fn blue() -> Color {
+        Color { red: 0, green: 0, blue: 128 }
+    }
+
+    pub fn magenta() -> Color {
+        Color { red: 128, green: 0, blue: 128 }
+    }
+
+    pub fn cyan() -> Color {
+        Color { red: 0, green: 128, blue: 128 }
+    }
+
+    pub fn white() -> Color {
+        Color { red: 192, green: 192, blue: 192 }
+    }
+
+    pub fn from_index(index: u8) -> Option<Color> {
+        return match index {
+            0 => Some(Color::black()),
+            1 => Some(Color::red()),
+            2 => Some(Color::green()),
+            3 => Some(Color::yellow()),
+            4 => Some(Color::blue()),
+            5 => Some(Color::magenta()),
+            6 => Some(Color::cyan()),
+            7 => Some(Color::white()),
+            _ => None,            
+        }
     }
 
     pub fn from_args(args: &mut Vec<u8>) -> Option<Color> {
         return match args.pop() {
             Some(arg) => match arg {
-                2 => {
-                    // 24bit color EASY
-                    None
-                }
-                5 => {
-                    // 8Bit Color (bit shift) :throwing_up_emoji:
-                    None
-                }
-                _ => None
-
+                2 => Some(Color {
+                    red: args.pop().unwrap_or(0),
+                    green: args.pop().unwrap_or(0),
+                    blue: args.pop().unwrap_or(0),
+                }),
+                5 => match args.pop() {
+                    Some(color) => Some(Color {
+                        red: (color >> 5) * 32,
+                        green: ((color & 28) >> 2) * 32,
+                        blue: (color & 3) * 32,
+                    }),
+                    None => Some(Color::black()),
+                },
+                _ => None,
             },
             None => None,
         };
@@ -129,19 +170,19 @@ impl SelectGraphicRendition {
                 27 => Some(SelectGraphicRendition::NotReveresed),
                 28 => Some(SelectGraphicRendition::Reveal),
                 29 => Some(SelectGraphicRendition::NotCrossedOut),
-                30..=37 => Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::from_index(arg),
-                ))),
-                38 => Some(SelectGraphicRendition::ForgroundColor(
-                    Color::from_args(args),
+                30..=37 => Some(SelectGraphicRendition::ForgroundColor(
+                    Color::from_index(arg-30),
                 )),
+                38 => Some(SelectGraphicRendition::ForgroundColor(Color::from_args(
+                    args,
+                ))),
                 39 => Some(SelectGraphicRendition::ForgroundColor(None)),
-                40..=47 => Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::from_index(arg),
-                ))),
-                48 => Some(SelectGraphicRendition::ForgroundColor(
-                    Color::from_args(args),
+                40..=47 => Some(SelectGraphicRendition::BackgroundColor(
+                    Color::from_index(arg-40),
                 )),
+                48 => Some(SelectGraphicRendition::ForgroundColor(Color::from_args(
+                    args,
+                ))),
                 49 => Some(SelectGraphicRendition::ForgroundColor(None)),
                 50 => Some(SelectGraphicRendition::DisableProportionalSpacing),
                 51 => Some(SelectGraphicRendition::Framed),
@@ -149,9 +190,9 @@ impl SelectGraphicRendition {
                 53 => Some(SelectGraphicRendition::Overlined),
                 54 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
                 55 => Some(SelectGraphicRendition::NotOverlined),
-                58 => Some(SelectGraphicRendition::SetUnderlineColor(
-                    Color::from_args(args),
-                )),
+                58 => Some(SelectGraphicRendition::SetUnderlineColor(Color::from_args(
+                    args,
+                ))),
                 59 => Some(SelectGraphicRendition::SetUnderlineColor(None)),
                 60 => Some(SelectGraphicRendition::IdeogramUnderline),
                 61 => Some(SelectGraphicRendition::IdeogramDoubleUnderline),
@@ -162,13 +203,21 @@ impl SelectGraphicRendition {
                 74 => Some(SelectGraphicRendition::Superscript),
                 75 => Some(SelectGraphicRendition::Subscript),
                 75 => Some(SelectGraphicRendition::NethirSuperOrSubScript),
-                90..=97 => Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::from_index(arg)),
-                ))),
+                90..=97 => {
+                    match Color::from_index(arg-90) {
+                        Some(c) => {
+                            Some(SelectGraphicRendition::ForgroundColor(Some(Color::make_bright(c))))
+                        }
+                        None => Some(SelectGraphicRendition::ForgroundColor(None))
+                    }
+                }
                 100..=107 => {
-                    return Some(SelectGraphicRendition::BackgroundColor(Some(
-                        Color::make_bright(Color::from_index(arg)),
-                    )))
+                    match Color::from_index(arg-90) {
+                        Some(c) => {
+                            Some(SelectGraphicRendition::BackgroundColor(Some(Color::make_bright(c))))
+                        }
+                        None => Some(SelectGraphicRendition::BackgroundColor(None))
+                    }
                 }
                 _ => None,
             },
