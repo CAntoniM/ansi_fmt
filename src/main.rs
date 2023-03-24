@@ -462,6 +462,29 @@ impl ANSIText {
         }
         return text_buffer;
     }
+
+    pub fn read(&mut self,text: String) {
+        let mut sequences = text.split(ESC);
+        self.text.push(ANSITextElement::Text(
+            sequences.next().unwrap_or("").to_string(),
+        ));
+        for sequence in sequences {
+            if sequence.len() <= 0 {
+                continue;
+            }
+            let (text, opt_fe_sequence) = FeEscapeSequence::extract_from(sequence);
+            if let Some(fe_sequence) = opt_fe_sequence {
+                self
+                    .text
+                    .push(ANSITextElement::EscapeSequence(fe_sequence));
+            }
+            self.text.push(ANSITextElement::Text(text))
+        }
+    }
+
+    pub fn flush(&mut self) {
+        self.text = Vec::new()
+    }
 }
 
 /// This represents the styling of text that we support as part of our output
