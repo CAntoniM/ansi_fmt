@@ -37,8 +37,33 @@ So what are ANSI Control codes? these are a set of formatting instructions that
 have more been evolved into rather than actually designed. but they generally
 follow the following sturcture:
 
-```txt
-    <Escape>+"["+<Command> + ([";" + <arg>])
+```ebnf
+digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
+int = { digit }
+args = [int],{[";"],[int]}
+command_identifier = 'm'| 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'J' | 'K' | 'S' | 'T' | 'f' | 'i' | 'n' | 's' | 'u'
+control_sequence = args, command_identifier
+fe_escape_sequence = fe_identifier "N" | "O" | "P" | "[",control_sequence | "X" | "^" | "_" | "\\"
+esc = "\e"
+letter = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+        | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+        | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+        | "V" | "W" | "X" | "Y" | "Z" | "a" | "b"
+        | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+        | "j" | "k" | "l" | "m" | "n" | "o" | "p"
+        | "q" | "r" | "s" | "t" | "u" | "v" | "w"
+        | "x" | "y" | "z" ;
+
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+symbol = "[" | "]" | "{" | "}" | "(" | ")" | "<" | ">"
+        | "'" | '"' | "=" | "|" | "." | "," | ";" | "-"
+        | "+" | "*" | "?" | "\n" | "\t" | "\r" | "\f" | "\b" ;
+
+character = letter | digit | symbol | "_" | " " ;
+string = {character}
+esc_sequence = esc,fe_escape_sequence
+text = {string | esc_sequence}
 ```
 
 where the Escape can be any of the following possible valid values
