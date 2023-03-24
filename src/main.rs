@@ -15,6 +15,26 @@ struct Color {
     blue: u8,
 }
 
+impl Color {
+    pub fn from_index(index: u8) -> Color {
+        todo!("Implement Index based Color generation");
+        return Color {
+            red: 0,
+            green: 0,
+            blue: 0,
+        };
+    }
+
+    pub fn from_args(args: &Vec<u8>) -> Color {
+        todo!("Implement Args based Color generation");
+        return Color {
+            red: 0,
+            green: 0,
+            blue: 0,
+        };
+    }
+}
+
 enum SelectGraphicRendition {
     Normal,
     Bold,
@@ -26,8 +46,7 @@ enum SelectGraphicRendition {
     Invert,
     Conceal,
     CrossedOut,
-    PrimaryFont,
-    AlternativeFont(u8),
+    Font(u8),
     DoublyUnderlined,
     NormalIntensity,
     NotItalic,
@@ -37,18 +56,15 @@ enum SelectGraphicRendition {
     NotReveresed,
     Reveal,
     NotCrossedOut,
-    ForgroundColor(Color),
-    DefaultForgroundColor,
-    BackgroundColor(Color),
-    DefaultBackgroundColor,
+    ForgroundColor(Option<Color>),
+    BackgroundColor(Option<Color>),
     DisableProportionalSpacing,
     Framed,
     Encircled,
     Overlined,
     NeitherFramedNorEncircled,
     NotOverlined,
-    SetUnderlineColor(Color),
-    DefaultUnderlineColor,
+    SetUnderlineColor(Option<Color>),
     IdeogramUnderline,
     IdeogramDoubleUnderline,
     IdeogramOverline,
@@ -61,27 +77,91 @@ enum SelectGraphicRendition {
 }
 
 impl SelectGraphicRendition {
-
-    pub fn from(args: Vec<u16>) -> Option<SelectGraphicRendition> {
-        todo!("Add SGR Parsing");
-        return None;
+    pub fn from(args: &mut Vec<u8>) -> Option<SelectGraphicRendition> {
+        args.reverse();
+        return match args.pop() {
+            Some(arg) => match arg {
+                0 => Some(SelectGraphicRendition::Normal),
+                1 => Some(SelectGraphicRendition::Bold),
+                2 => Some(SelectGraphicRendition::Italic),
+                3 => Some(SelectGraphicRendition::Faint),
+                4 => Some(SelectGraphicRendition::Italic),
+                5 => Some(SelectGraphicRendition::Underline),
+                6 => Some(SelectGraphicRendition::SlowBlink),
+                7 => Some(SelectGraphicRendition::RapidBlink),
+                8 => Some(SelectGraphicRendition::Invert),
+                9 => Some(SelectGraphicRendition::Conceal),
+                10..=20 => Some(SelectGraphicRendition::Font(arg - 10)),
+                21 => Some(SelectGraphicRendition::DoublyUnderlined),
+                22 => Some(SelectGraphicRendition::NormalIntensity),
+                23 => Some(SelectGraphicRendition::NotItalic),
+                24 => Some(SelectGraphicRendition::NotUnderlined),
+                25 => Some(SelectGraphicRendition::NotBlinking),
+                26 => Some(SelectGraphicRendition::ProportionalSpacing),
+                27 => Some(SelectGraphicRendition::NotReveresed),
+                28 => Some(SelectGraphicRendition::Reveal),
+                29 => Some(SelectGraphicRendition::NotCrossedOut),
+                30..=37 => Some(SelectGraphicRendition::ForgroundColor(Some(
+                    Color::from_index(arg),
+                ))),
+                38 => Some(SelectGraphicRendition::ForgroundColor(Some(
+                    Color::from_args(args),
+                ))),
+                39 => Some(SelectGraphicRendition::ForgroundColor(None)),
+                40..=47 => Some(SelectGraphicRendition::BackgroundColor(Some(
+                    Color::from_index(arg),
+                ))),
+                48 => Some(SelectGraphicRendition::ForgroundColor(Some(
+                    Color::from_args(args),
+                ))),
+                49 => Some(SelectGraphicRendition::ForgroundColor(None)),
+                50 => Some(SelectGraphicRendition::DisableProportionalSpacing),
+                51 => Some(SelectGraphicRendition::Framed),
+                52 => Some(SelectGraphicRendition::Encircled),
+                53 => Some(SelectGraphicRendition::Overlined),
+                54 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                55 => Some(SelectGraphicRendition::NotOverlined),
+                58 => Some(SelectGraphicRendition::SetUnderlineColor(Some(
+                    Color::from_args(args),
+                ))),
+                59 => Some(SelectGraphicRendition::SetUnderlineColor(None)),
+                60 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                61 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                62 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                63 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                64 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                65 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                74 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                75 => Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                90..=97 => Some(SelectGraphicRendition::ForgroundColor(Some(
+                    Color::from_index(arg),
+                ))),
+                100..=107 => {
+                    return Some(SelectGraphicRendition::BackgroundColor(Some(
+                        Color::from_index(arg),
+                    )))
+                }
+                _ => None,
+            },
+            None => Some(SelectGraphicRendition::Normal),
+        };
     }
 }
 
 enum ControlSequence {
-    CursorUp(u16),
-    CursorDown(u16),
-    CursorForward(u16),
-    CursorBack(u16),
-    CursorNextLine(u16),
-    CursorPreviousLine(u16),
-    CursorHorizontalAbsolute(u16),
-    CursorPosition(u16, u16),
-    EraseInDisplay(u16),
-    EraseInLine(u16),
-    ScrollUp(u16),
-    ScrollDown(u16),
-    HorizonalVerticalPosition(u16, u16),
+    CursorUp(u8),
+    CursorDown(u8),
+    CursorForward(u8),
+    CursorBack(u8),
+    CursorNextLine(u8),
+    CursorPreviousLine(u8),
+    CursorHorizontalAbsolute(u8),
+    CursorPosition(u8, u8),
+    EraseInDisplay(u8),
+    EraseInLine(u8),
+    ScrollUp(u8),
+    ScrollDown(u8),
+    HorizonalVerticalPosition(u8, u8),
     SelectGraphicalRendition(SelectGraphicRendition),
     AUXPortOn,
     AUXPortOff,
@@ -99,13 +179,11 @@ enum ControlSequence {
 }
 
 impl ControlSequence {
-    pub fn get_args(text: &mut String) -> Vec<u16> {
-        let mut args: Vec<u16> = Vec::new();
+    pub fn get_args(text: &mut String) -> Vec<u8> {
+        let mut args: Vec<u8> = Vec::new();
         for arg_str in text.split(';') {
-            match arg_str.parse::<u16>() {
-                Ok(arg) => {
-                    args.push(arg)
-                }
+            match arg_str.parse::<u8>() {
+                Ok(arg) => args.push(arg),
                 Err(_) => {}
             }
         }
@@ -119,81 +197,81 @@ impl ControlSequence {
                 'A' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorUp(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'B' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorDown(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'C' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorForward(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'D' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorBack(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'E' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorNextLine(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'F' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorPreviousLine(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'G' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorHorizontalAbsolute(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'H' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::CursorPosition(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
-                        args.get(1).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
+                        args.get(1).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'J' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::EraseInDisplay(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'K' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::EraseInLine(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'S' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::ScrollUp(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'T' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::ScrollDown(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'f' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
                     return Some(ControlSequence::HorizonalVerticalPosition(
-                        args.get(0).unwrap_or(&(1 as u16)).clone(),
-                        args.get(1).unwrap_or(&(1 as u16)).clone(),
+                        args.get(0).unwrap_or(&(1 as u8)).clone(),
+                        args.get(1).unwrap_or(&(1 as u8)).clone(),
                     ));
                 }
                 'i' => {
@@ -289,7 +367,9 @@ impl ANSIText {
     pub fn from(text: String) -> ANSIText {
         let mut sequences = text.split(ESC);
         let mut text_buffer: ANSIText = ANSIText { text: Vec::new() };
-        text_buffer.text.push(ANSITextElement::Text(sequences.next().unwrap_or("").to_string()));
+        text_buffer.text.push(ANSITextElement::Text(
+            sequences.next().unwrap_or("").to_string(),
+        ));
         for sequence in sequences {
             if sequence.len() <= 0 {
                 continue;
