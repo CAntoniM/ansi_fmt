@@ -1,8 +1,9 @@
 use std::str::Chars;
 
-
+/// This is an alias for the ASCII Escape character
 static ESC: char = 0x1B as char;
 
+/// A simple reprensentation of a 24 bit color code used is most apps
 struct Color {
     red: u8,
     green: u8,
@@ -10,6 +11,8 @@ struct Color {
 }
 
 impl Color {
+
+    /// Returns a Color that represents black
     pub fn black() -> Color {
         Color {
             red: 0,
@@ -18,6 +21,7 @@ impl Color {
         }
     }
 
+    /// Returns a Color that represents red
     pub fn red() -> Color {
         Color {
             red: 128,
@@ -26,6 +30,7 @@ impl Color {
         }
     }
 
+    /// Returns a Color that represents green
     pub fn green() -> Color {
         Color {
             red: 0,
@@ -34,6 +39,7 @@ impl Color {
         }
     }
 
+    /// Returns a Color that represents yellow
     pub fn yellow() -> Color {
         Color {
             red: 128,
@@ -42,6 +48,7 @@ impl Color {
         }
     }
 
+    /// Returns a Color that represents blue
     pub fn blue() -> Color {
         Color {
             red: 0,
@@ -50,6 +57,7 @@ impl Color {
         }
     }
 
+    /// Returns a Color that represents magenta
     pub fn magenta() -> Color {
         Color {
             red: 128,
@@ -58,6 +66,7 @@ impl Color {
         }
     }
 
+    /// Returns a Color that represents cyan
     pub fn cyan() -> Color {
         Color {
             red: 0,
@@ -66,6 +75,7 @@ impl Color {
         }
     }
 
+    /// Returns a Color that represents white
     pub fn white() -> Color {
         Color {
             red: 192,
@@ -88,6 +98,15 @@ impl Color {
         };
     }
 
+    /// Converts the args used as part of SelectGraphicsRendition into a 24bit Color variable
+    /// 
+    /// The function expects that the user is passing in arguments in the on of the following structure
+    /// 
+    /// 1. a 2 followed by a red green or blue
+    /// 2. a 5 followed by a 8 bit color code
+    /// 
+    /// if arguments are not provided it will assume a value or 0 for these arguments it will only
+    /// return 0 if the color mode provided as the first argument is not present or recognised
     pub fn from_args(args: &mut Vec<u8>) -> Option<Color> {
         return match args.pop() {
             Some(arg) => match arg {
@@ -110,6 +129,7 @@ impl Color {
         };
     }
 
+    /// This converts the Color given into a bright color varient.
     pub fn make_bright(mut color: Color) -> Color {
         if color.green == 0 && color.blue == 0 && color.red == 0 {
             color.green = 128;
@@ -130,6 +150,8 @@ impl Color {
     }
 }
 
+/// this is a representation of the SelectGraphicsRendidtion sequences that are commonly used in terminals.
+/// we should aim to be as accurate to the most terminals as possible and cover as many values as possible
 pub enum SelectGraphicRendition {
     Normal,
     Bold,
@@ -172,6 +194,10 @@ pub enum SelectGraphicRendition {
 }
 
 impl SelectGraphicRendition {
+    
+    /// This will parse the args of the SelectGraphics rendition into the concreate values used internally 
+    /// This is expected to that either a number to represent a particular graphics change or non will be
+    /// proivded at which point it will revert to the default settings
     pub fn from(args: &mut Vec<u8>) -> Option<SelectGraphicRendition> {
         args.reverse();
         return match args.pop() {
@@ -248,6 +274,7 @@ impl SelectGraphicRendition {
     }
 }
 
+/// This is the list of valid control sequences that are valid as part of the FeEscape Sequence
 pub enum ControlSequence {
     CursorUp(u8),
     CursorDown(u8),
@@ -279,6 +306,14 @@ pub enum ControlSequence {
 }
 
 impl ControlSequence {
+    /// This will conver the text representation of the arguments given in the ebnf described below and return them as a series of int arguments.
+    /// 
+    /// ```ebnf
+    /// digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
+    /// int = { digit }
+    /// args = [int],{[";"],[int]}
+    /// ```
+    ///
     pub fn get_args(text: &mut String) -> Vec<u8> {
         let mut args: Vec<u8> = Vec::new();
         for arg_str in text.split(';') {
@@ -289,6 +324,15 @@ impl ControlSequence {
         }
         return Vec::new();
     }
+    /// This will parse the text in the form described by the ebnf below into its internal ControlSequence representation if it is possible.
+    /// 
+    /// ```ebf
+    /// digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
+    /// int = { digit }
+    /// args = [int],{[";"],[int]}
+    /// command_identifier = 'm'| 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'J' | 'K' | 'S' | 'T' | 'f' | 'i' | 'n' | 's' | 'u'
+    /// control_sequence = args, command_identifier
+    /// ```
     pub fn from(chars: &mut Chars) -> Option<ControlSequence> {
         let mut text_buffer = String::new();
         while let Some(c) = chars.next() {
@@ -421,17 +465,29 @@ impl ControlSequence {
     }
 }
 
+/// This is the internal reprenstation of ANSI FeEscapeSequences 
 pub enum FeEscapeSequence {
     SingleShiftTwo,
     SingleShiftThree,
     DeviceControlString,
     ControlSequence(ControlSequence),
+    StringTerminator,
     StartOfString,
     PrivacyMessage,
     ApplicationProgramCommand,
 }
 
 impl FeEscapeSequence {
+    /// Takes in a string following the below ebnf and returns out our internal FeEscapeSequence 
+    /// 
+    /// ```ebf
+    /// digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
+    /// int = { digit }
+    /// args = [int],{[";"],[int]}
+    /// command_identifier = 'm'| 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'J' | 'K' | 'S' | 'T' | 'f' | 'i' | 'n' | 's' | 'u'
+    /// control_sequence = args, command_identifier
+    /// fe_escape_sequence = fe_identifier "N" | "O" | "P" | "[",control_sequence | "X" | "^" | "_" | "\\"
+    /// ```
     pub fn from(chars: &mut Chars) -> Option<FeEscapeSequence> {
         return match chars.next() {
             Some(c) => match c {
@@ -447,12 +503,14 @@ impl FeEscapeSequence {
                 'X' | 'x' => Some(FeEscapeSequence::StartOfString),
                 '^' => Some(FeEscapeSequence::PrivacyMessage),
                 '_' => Some(FeEscapeSequence::ApplicationProgramCommand),
+                '\\' => Some(FeEscapeSequence::StringTerminator),
                 _ => None,
             },
             None => None,
         };
     }
 
+    /// This is varient of from that returns a copy of the string given with the escape sequence removed if there was one at the start as well as the escape sequence found.
     pub fn extract_from(string: &str) -> (String, Option<FeEscapeSequence>) {
         let mut chars = string.chars();
         let esc_seq = FeEscapeSequence::from(&mut chars);
@@ -460,41 +518,60 @@ impl FeEscapeSequence {
     }
 }
 
+/// An element of a ANSI Complient string containing either a section of text or an escape sequence
 pub enum TextElement {
     Text(String),
     EscapeSequence(FeEscapeSequence),
 }
 
+/// a ANSI Complient string
 pub struct Text {
     text: Vec<TextElement>,
 }
 
 impl Text {
+    // returns a new fully allocated ansi text struct
     pub fn new() -> Text {
         Text { text: Vec::new() }
     }
 
+    // This will is a wrapper function allowing you to instant a ansi::Text and read in a string into it
     pub fn from(text: String) -> Text {
-        let mut sequences = text.split(ESC);
-        let mut text_buffer: Text = Text { text: Vec::new() };
-        text_buffer.text.push(TextElement::Text(
-            sequences.next().unwrap_or("").to_string(),
-        ));
-        for sequence in sequences {
-            if sequence.len() <= 0 {
-                continue;
-            }
-            let (text, opt_fe_sequence) = FeEscapeSequence::extract_from(sequence);
-            if let Some(fe_sequence) = opt_fe_sequence {
-                text_buffer
-                    .text
-                    .push(TextElement::EscapeSequence(fe_sequence));
-            }
-            text_buffer.text.push(TextElement::Text(text))
-        }
-        return text_buffer;
+        let mut ansi_text = Text::new();
+        ansi_text.read(text);
+        return ansi_text
     }
 
+    /// This allows us to read in a complient ANSI String into our internal representation it does this by parsing out the ansi escape sequences that follow the ebnf given below
+    /// 
+    /// ```ebnf
+    /// digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0"
+    /// int = { digit }
+    /// args = [int],{[";"],[int]}
+    /// command_identifier = 'm'| 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'J' | 'K' | 'S' | 'T' | 'f' | 'i' | 'n' | 's' | 'u'
+    /// control_sequence = args, command_identifier
+    /// fe_escape_sequence = fe_identifier "N" | "O" | "P" | "[",control_sequence | "X" | "^" | "_" | "\\"
+    /// esc = "\e"
+    /// letter = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+    ///        | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+    ///        | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+    ///        | "V" | "W" | "X" | "Y" | "Z" | "a" | "b"
+    ///        | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+    ///        | "j" | "k" | "l" | "m" | "n" | "o" | "p"
+    ///        | "q" | "r" | "s" | "t" | "u" | "v" | "w"
+    ///        | "x" | "y" | "z" ;
+    ///
+    /// digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+    ///
+    /// symbol = "[" | "]" | "{" | "}" | "(" | ")" | "<" | ">"
+    ///         | "'" | '"' | "=" | "|" | "." | "," | ";" | "-" 
+    ///         | "+" | "*" | "?" | "\n" | "\t" | "\r" | "\f" | "\b" ;
+    ///
+    /// character = letter | digit | symbol | "_" | " " ;
+    /// string = {character}
+    /// esc_sequence = esc,fe_escape_sequence
+    /// text = {string | esc_sequence}
+    /// ```
     pub fn read(&mut self, text: String) {
         let mut sequences = text.split(ESC);
         self.text.push(TextElement::Text(
@@ -512,7 +589,8 @@ impl Text {
         }
     }
 
+    /// This clears the buffer of that is held internally is the same as allocating a new struct however it allocation than the creating a new vector.
     pub fn flush(&mut self) {
-        self.text = Vec::new()
+        self.text.clear()
     }
 }
