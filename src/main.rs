@@ -7,6 +7,7 @@ use std::{
 
 pub mod ansi;
 pub mod common;
+pub mod internal_format;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 enum OutputFormat {

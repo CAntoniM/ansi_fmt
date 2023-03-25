@@ -1,21 +1,21 @@
+use crate::common;
 use std::str::Chars;
-
 /// This is an alias for the ASCII Escape character
 static ESC: char = 0x1B as char;
 
-pub type Color = crate::common::Color;
+pub type Color = common::Color;
 
 impl Color {
     pub fn from_index(index: u8) -> Option<Color> {
         return match index {
-            0 => Some(Color::Black()),
-            1 => Some(Color::Red()),
-            2 => Some(Color::Green()),
-            3 => Some(Color::Yellow()),
-            4 => Some(Color::Blue()),
-            5 => Some(Color::Magenta()),
-            6 => Some(Color::Cyan()),
-            7 => Some(Color::White()),
+            0 => Some(common::black()),
+            1 => Some(common::red()),
+            2 => Some(common::green()),
+            3 => Some(common::yellow()),
+            4 => Some(common::blue()),
+            5 => Some(common::magenta()),
+            6 => Some(common::cyan()),
+            7 => Some(common::white()),
             _ => None,
         };
     }
@@ -43,7 +43,7 @@ impl Color {
                         green: ((color & 28) >> 2) * 32,
                         blue: (color & 3) * 32,
                     }),
-                    None => Some(Color::Black()),
+                    None => Some(common::black()),
                 },
                 _ => None,
             },
@@ -508,21 +508,21 @@ impl Text {
 mod test {
     use std::{collections::HashMap, vec};
 
-    use crate::ansi::TextElement;
+    use crate::{ansi::TextElement, common};
 
     use super::{Color, ControlSequence, FeEscapeSequence, SelectGraphicRendition};
 
     #[test]
     fn color_from_index() {
         let tests = [
-            (0, Some(Color::Black())),
-            (1, Some(Color::Red())),
-            (2, Some(Color::Green())),
-            (3, Some(Color::Yellow())),
-            (4, Some(Color::Blue())),
-            (5, Some(Color::Magenta())),
-            (6, Some(Color::Cyan())),
-            (7, Some(Color::White())),
+            (0, Some(common::black())),
+            (1, Some(common::red())),
+            (2, Some(common::green())),
+            (3, Some(common::yellow())),
+            (4, Some(common::blue())),
+            (5, Some(common::magenta())),
+            (6, Some(common::cyan())),
+            (7, Some(common::white())),
             (8, None),
         ];
         for test in tests {
@@ -745,97 +745,97 @@ mod test {
             (
                 90 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Black()),
+                    Color::make_bright(common::black()),
                 ))),
             ),
             (
                 91 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Red()),
+                    Color::make_bright(common::red()),
                 ))),
             ),
             (
                 92 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Green()),
+                    Color::make_bright(common::green()),
                 ))),
             ),
             (
                 93 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Yellow()),
+                    Color::make_bright(common::yellow()),
                 ))),
             ),
             (
                 94 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Blue()),
+                    Color::make_bright(common::blue()),
                 ))),
             ),
             (
                 95 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Magenta()),
+                    Color::make_bright(common::magenta()),
                 ))),
             ),
             (
                 96 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Cyan()),
+                    Color::make_bright(common::cyan()),
                 ))),
             ),
             (
                 97 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::White()),
+                    Color::make_bright(common::white()),
                 ))),
             ),
             (
                 100 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Black()),
+                    Color::make_bright(common::black()),
                 ))),
             ),
             (
                 101 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Red()),
+                    Color::make_bright(common::red()),
                 ))),
             ),
             (
                 102 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Green()),
+                    Color::make_bright(common::green()),
                 ))),
             ),
             (
                 103 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Yellow()),
+                    Color::make_bright(common::yellow()),
                 ))),
             ),
             (
                 104 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Blue()),
+                    Color::make_bright(common::blue()),
                 ))),
             ),
             (
                 105 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Magenta()),
+                    Color::make_bright(common::magenta()),
                 ))),
             ),
             (
                 106 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Cyan()),
+                    Color::make_bright(common::cyan()),
                 ))),
             ),
             (
                 107 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::White()),
+                    Color::make_bright(common::white()),
                 ))),
             ),
         ]);
@@ -971,10 +971,6 @@ mod test {
                 let (mut test, result) = test_case;
                 assert_eq!(ControlSequence::from(&mut test), result);
             }
-            let expected_result = match SelectGraphicRendition::from(&mut vec![n]) {
-                Some(sgr) => Some(ControlSequence::SelectGraphicalRendition(sgr)),
-                None => None,
-            };
         }
     }
 
