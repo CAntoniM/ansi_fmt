@@ -5,20 +5,8 @@ use std::{
     path::PathBuf,
 };
 
-mod ansi;
-/// This represents the styling of text that we support as part of our output
-/// The idea is that all writers must be able to output these particular styles
-/// with out worrying about the other support by ANSI
-#[derive(PartialEq, Eq, PartialOrd)]
-enum Fromatting {
-    Bold,
-    Faint,
-    Italic,
-    Underline,
-    CrossedOut,
-    ForgroundColor,
-    BackgroundColor,
-}
+pub mod ansi;
+pub mod common;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 enum OutputFormat {
