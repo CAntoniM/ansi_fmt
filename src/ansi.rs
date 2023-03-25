@@ -536,12 +536,14 @@ impl FeEscapeSequence {
 }
 
 /// An element of a ANSI Complient string containing either a section of text or an escape sequence
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum TextElement {
     Text(String),
     EscapeSequence(FeEscapeSequence),
 }
 
 /// a ANSI Complient string
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Text {
     text: Vec<TextElement>,
 }
@@ -591,9 +593,15 @@ impl Text {
     /// ```
     pub fn read(&mut self, text: String) {
         let mut sequences = text.split(ESC);
-        self.text.push(TextElement::Text(
-            sequences.next().unwrap_or("").to_string(),
-        ));
+        match sequences.next() {
+            Some(text) => {
+                let s = text.to_string();
+                if !s.is_empty() {
+                    self.text.push(TextElement::Text(s));
+                }
+            }
+            None => {}
+        };
         for sequence in sequences {
             if sequence.len() <= 0 {
                 continue;
@@ -602,7 +610,9 @@ impl Text {
             if let Some(fe_sequence) = opt_fe_sequence {
                 self.text.push(TextElement::EscapeSequence(fe_sequence));
             }
-            self.text.push(TextElement::Text(text))
+            if !text.is_empty() {
+                self.text.push(TextElement::Text(text))
+            }
         }
     }
 
@@ -616,9 +626,9 @@ impl Text {
 mod ansi_test {
     use std::{collections::HashMap, vec};
 
-    use crate::ansi::{ControlSequence, FeEscapeSequence};
+    use crate::ansi::TextElement;
 
-    use super::{Color, SelectGraphicRendition};
+    use super::{Color, ControlSequence, FeEscapeSequence, SelectGraphicRendition, Text};
 
     #[test]
     fn color_back() {
@@ -1295,5 +1305,22 @@ mod ansi_test {
             assert_eq!(result_text, "test".to_string());
             assert_eq!(result, expect_result);
         }
+    }
+
+    #[test]
+    fn test_from() {
+        assert_eq!(super::Text::from("\u{001B}[m\u{001B}[32mThis is a \u{001B}[1mtest\u{001B}[22m and it should work\u{001B}[0m".to_string()),super::Text{
+            text:vec![
+                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Normal))),
+                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::ForgroundColor(Color::from_index(2))))),
+                TextElement::Text("This is a ".to_string()),
+                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Bold))),
+                TextElement::Text("test".to_string()),
+                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::NormalIntensity))),
+                TextElement::Text(" and it should work".to_string()),
+                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Normal))),
+                ]
+            }
+        );
     }
 }
