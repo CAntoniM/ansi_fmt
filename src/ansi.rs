@@ -286,6 +286,7 @@ impl SelectGraphicRendition {
 }
 
 /// This is the list of valid control sequences that are valid as part of the FeEscape Sequence
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum ControlSequence {
     CursorUp(u8),
     CursorDown(u8),
@@ -327,13 +328,15 @@ impl ControlSequence {
     ///
     pub fn get_args(text: &mut String) -> Vec<u8> {
         let mut args: Vec<u8> = Vec::new();
-        for arg_str in text.split(';') {
-            match arg_str.parse::<u8>() {
-                Ok(arg) => args.push(arg),
-                Err(_) => {}
+        if let Some(c) = text.pop() {
+            if c != ';' {
+                text.push(c);
             }
         }
-        return Vec::new();
+        for arg_str in text.split(';') {
+            args.push(arg_str.parse::<u8>().unwrap_or(0))
+        }
+        return args;
     }
     /// This will parse the text in the form described by the ebnf below into its internal ControlSequence representation if it is possible.
     ///
@@ -477,11 +480,13 @@ impl ControlSequence {
 }
 
 /// This is the internal reprenstation of ANSI FeEscapeSequences
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum FeEscapeSequence {
     SingleShiftTwo,
     SingleShiftThree,
     DeviceControlString,
     ControlSequence(ControlSequence),
+    OperatingSystemCommand,
     StringTerminator,
     StartOfString,
     PrivacyMessage,
@@ -511,6 +516,7 @@ impl FeEscapeSequence {
                     }
                     None => None,
                 },
+                ']' => Some(FeEscapeSequence::OperatingSystemCommand),
                 'X' | 'x' => Some(FeEscapeSequence::StartOfString),
                 '^' => Some(FeEscapeSequence::PrivacyMessage),
                 '_' => Some(FeEscapeSequence::ApplicationProgramCommand),
@@ -608,7 +614,9 @@ impl Text {
 
 #[cfg(test)]
 mod ansi_test {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, vec};
+
+    use crate::ansi::{ControlSequence, FeEscapeSequence};
 
     use super::{Color, SelectGraphicRendition};
 
@@ -1092,6 +1100,200 @@ mod ansi_test {
                     assert_eq!(result, None)
                 }
             }
+        }
+    }
+    #[test]
+    fn csi_get_args() {
+        assert_eq!(ControlSequence::get_args(&mut "3".to_string()), vec![3]);
+        assert_eq!(ControlSequence::get_args(&mut ";".to_string()), vec![0]);
+        assert_eq!(
+            ControlSequence::get_args(&mut "3;2".to_string()),
+            vec![3, 2]
+        );
+        assert_eq!(
+            ControlSequence::get_args(&mut "3;2;1".to_string()),
+            vec![3, 2, 1]
+        );
+        assert_eq!(
+            ControlSequence::get_args(&mut "255;;255".to_string()),
+            vec![255, 0, 255]
+        );
+    }
+
+    #[test]
+    fn csi_from() {
+        for n in [0 as u8, 100 as u8, 255 as u8] {
+            for test_case in [
+                (
+                    format!("{}A", n).chars(),
+                    Some(ControlSequence::CursorUp(n)),
+                ),
+                (
+                    format!("{}B", n).chars(),
+                    Some(ControlSequence::CursorDown(n)),
+                ),
+                (
+                    format!("{}C", n).chars(),
+                    Some(ControlSequence::CursorForward(n)),
+                ),
+                (
+                    format!("{}D", n).chars(),
+                    Some(ControlSequence::CursorBack(n)),
+                ),
+                (
+                    format!("{}E", n).chars(),
+                    Some(ControlSequence::CursorNextLine(n)),
+                ),
+                (
+                    format!("{}F", n).chars(),
+                    Some(ControlSequence::CursorPreviousLine(n)),
+                ),
+                (
+                    format!("{}G", n).chars(),
+                    Some(ControlSequence::CursorHorizontalAbsolute(n)),
+                ),
+                (
+                    format!("{}H", n).chars(),
+                    Some(ControlSequence::CursorPosition(n, 1)),
+                ),
+                (
+                    format!("{}J", n).chars(),
+                    Some(ControlSequence::EraseInDisplay(n)),
+                ),
+                (
+                    format!("{}K", n).chars(),
+                    Some(ControlSequence::EraseInLine(n)),
+                ),
+                (
+                    format!("{}S", n).chars(),
+                    Some(ControlSequence::ScrollUp(n)),
+                ),
+                (
+                    format!("{}T", n).chars(),
+                    Some(ControlSequence::ScrollDown(n)),
+                ),
+                (
+                    format!("{}f", n).chars(),
+                    Some(ControlSequence::HorizonalVerticalPosition(n, 1)),
+                ),
+                (format!("5i").chars(), Some(ControlSequence::AUXPortOn)),
+                (format!("4i").chars(), Some(ControlSequence::AUXPortOff)),
+                (
+                    format!("6n").chars(),
+                    Some(ControlSequence::DeviceStatusReport),
+                ),
+                (
+                    format!("s").chars(),
+                    Some(ControlSequence::SaveCursorPosistion),
+                ),
+                (
+                    format!("u").chars(),
+                    Some(ControlSequence::RestoreCursorPosistion),
+                ),
+                (format!("?25h").chars(), Some(ControlSequence::VT220Cursor)),
+                (format!("?25l").chars(), Some(ControlSequence::HideCursor)),
+                (
+                    format!("?1004h").chars(),
+                    Some(ControlSequence::EnableReportingFocus),
+                ),
+                (
+                    format!("?1004l").chars(),
+                    Some(ControlSequence::DisableReportingFocus),
+                ),
+                (
+                    format!("?1049h").chars(),
+                    Some(ControlSequence::EnableAltScreenBuf),
+                ),
+                (
+                    format!("?1049l").chars(),
+                    Some(ControlSequence::DisableAltScreenBuf),
+                ),
+                (
+                    format!("?2004h").chars(),
+                    Some(ControlSequence::BracketPasteMode),
+                ),
+                (
+                    format!("?2004l").chars(),
+                    Some(ControlSequence::NoBracketPasteMode),
+                ),
+            ] {
+                let (mut test, result) = test_case;
+                assert_eq!(ControlSequence::from(&mut test), result);
+            }
+            let expected_result = match SelectGraphicRendition::from(&mut vec![n]) {
+                Some(sgr) => Some(ControlSequence::SelectGraphicalRendition(sgr)),
+                None => None,
+            };
+        }
+    }
+
+    #[test]
+    fn fe_from() {
+        for test_case in [
+            ("Ntest".chars(), Some(FeEscapeSequence::SingleShiftTwo)),
+            ("Otest".chars(), Some(FeEscapeSequence::SingleShiftThree)),
+            ("Ptest".chars(), Some(FeEscapeSequence::DeviceControlString)),
+            ("\\test".chars(), Some(FeEscapeSequence::StringTerminator)),
+            (
+                "]test".chars(),
+                Some(FeEscapeSequence::OperatingSystemCommand),
+            ),
+            ("Xtest".chars(), Some(FeEscapeSequence::StartOfString)),
+            ("^test".chars(), Some(FeEscapeSequence::PrivacyMessage)),
+            (
+                "_test".chars(),
+                Some(FeEscapeSequence::ApplicationProgramCommand),
+            ),
+            (
+                "[5itest".chars(),
+                Some(FeEscapeSequence::ControlSequence(
+                    ControlSequence::AUXPortOn,
+                )),
+            ),
+            (
+                "[31mtest".chars(),
+                Some(FeEscapeSequence::ControlSequence(
+                    ControlSequence::SelectGraphicalRendition(
+                        SelectGraphicRendition::ForgroundColor(Color::from_index(1)),
+                    ),
+                )),
+            ),
+        ] {
+            let (mut test, result) = test_case;
+            assert_eq!(FeEscapeSequence::from(&mut test), result)
+        }
+    }
+
+    #[test]
+    fn fe_extract_from() {
+        for test_case in [
+            ("Ntest", Some(FeEscapeSequence::SingleShiftTwo)),
+            ("Otest", Some(FeEscapeSequence::SingleShiftThree)),
+            ("Ptest", Some(FeEscapeSequence::DeviceControlString)),
+            ("\\test", Some(FeEscapeSequence::StringTerminator)),
+            ("]test", Some(FeEscapeSequence::OperatingSystemCommand)),
+            ("Xtest", Some(FeEscapeSequence::StartOfString)),
+            ("^test", Some(FeEscapeSequence::PrivacyMessage)),
+            ("_test", Some(FeEscapeSequence::ApplicationProgramCommand)),
+            (
+                "[5itest",
+                Some(FeEscapeSequence::ControlSequence(
+                    ControlSequence::AUXPortOn,
+                )),
+            ),
+            (
+                "[31mtest",
+                Some(FeEscapeSequence::ControlSequence(
+                    ControlSequence::SelectGraphicalRendition(
+                        SelectGraphicRendition::ForgroundColor(Color::from_index(1)),
+                    ),
+                )),
+            ),
+        ] {
+            let (mut test, expect_result) = test_case;
+            let (result_text, result) = FeEscapeSequence::extract_from(&mut test);
+            assert_eq!(result_text, "test".to_string());
+            assert_eq!(result, expect_result);
         }
     }
 }
