@@ -508,7 +508,7 @@ impl Text {
 mod test {
     use std::{collections::HashMap, vec};
 
-    use crate::{ansi::TextElement, common};
+    use crate::{common, input_fmt::ansi::TextElement};
 
     use super::{Color, ControlSequence, FeEscapeSequence, SelectGraphicRendition};
 
