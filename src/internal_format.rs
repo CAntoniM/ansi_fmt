@@ -95,7 +95,7 @@ type TextElement = common::TextElement<common::Toggle<Fromatting>>;
 type Text = common::Text<common::Toggle<Fromatting>>;
 
 impl Text {
-    pub fn from_ansi(text: ansi::Text)  -> Text{
+    pub fn from_ansi(text: ansi::Text) -> Text {
         let mut new_impl = Text { text: Vec::new() };
         for element in text.text.iter() {
             match element {
@@ -342,19 +342,33 @@ mod test {
                     super::TextElement::Text("is a".to_string()),
                     super::TextElement::Marker(crate::common::Toggle::Set(super::Fromatting::Bold)),
                     super::TextElement::Text("Test".to_string()),
-                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::Bold)),
-                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::Faint)),
-                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::Italic)),
-                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::Underline(None))),
-                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::CrossedOut)),
-                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::ForgroundColor(None))),
-                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::BackgroundColor(None))),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(
+                        super::Fromatting::Bold,
+                    )),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(
+                        super::Fromatting::Faint,
+                    )),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(
+                        super::Fromatting::Italic,
+                    )),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(
+                        super::Fromatting::Underline(None),
+                    )),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(
+                        super::Fromatting::CrossedOut,
+                    )),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(
+                        super::Fromatting::ForgroundColor(None),
+                    )),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(
+                        super::Fromatting::BackgroundColor(None),
+                    )),
                 ],
             },
         )];
         for test_case in test_cases {
-            let (input,expected_output) = test_case;
-            assert_eq!(super::Text::from_ansi(input),expected_output)
+            let (input, expected_output) = test_case;
+            assert_eq!(super::Text::from_ansi(input), expected_output)
         }
     }
 }
