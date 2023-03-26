@@ -1,110 +1,21 @@
+use crate::common;
 use std::str::Chars;
-
 /// This is an alias for the ASCII Escape character
 static ESC: char = 0x1B as char;
 
-/// A simple reprensentation of a 24 bit color code used is most apps
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
-struct Color {
-    red: u8,
-    green: u8,
-    blue: u8,
-}
+pub type Color = common::Color;
 
 impl Color {
-    pub fn red(&self) -> u8 {
-        return self.red.clone();
-    }
-
-    pub fn green(&self) -> u8 {
-        return self.green.clone();
-    }
-
-    pub fn blue(&self) -> u8 {
-        return self.blue.clone();
-    }
-    /// Returns a Color that represents black
-    pub fn Black() -> Color {
-        Color {
-            red: 0,
-            green: 0,
-            blue: 0,
-        }
-    }
-
-    /// Returns a Color that represents red
-    pub fn Red() -> Color {
-        Color {
-            red: 128,
-            green: 0,
-            blue: 0,
-        }
-    }
-
-    /// Returns a Color that represents green
-    pub fn Green() -> Color {
-        Color {
-            red: 0,
-            green: 128,
-            blue: 0,
-        }
-    }
-
-    /// Returns a Color that represents yellow
-    pub fn Yellow() -> Color {
-        Color {
-            red: 128,
-            green: 128,
-            blue: 0,
-        }
-    }
-
-    /// Returns a Color that represents blue
-    pub fn Blue() -> Color {
-        Color {
-            red: 0,
-            green: 0,
-            blue: 128,
-        }
-    }
-
-    /// Returns a Color that represents magenta
-    pub fn Magenta() -> Color {
-        Color {
-            red: 128,
-            green: 0,
-            blue: 128,
-        }
-    }
-
-    /// Returns a Color that represents cyan
-    pub fn Cyan() -> Color {
-        Color {
-            red: 0,
-            green: 128,
-            blue: 128,
-        }
-    }
-
-    /// Returns a Color that represents white
-    pub fn White() -> Color {
-        Color {
-            red: 192,
-            green: 192,
-            blue: 192,
-        }
-    }
-
     pub fn from_index(index: u8) -> Option<Color> {
         return match index {
-            0 => Some(Color::Black()),
-            1 => Some(Color::Red()),
-            2 => Some(Color::Green()),
-            3 => Some(Color::Yellow()),
-            4 => Some(Color::Blue()),
-            5 => Some(Color::Magenta()),
-            6 => Some(Color::Cyan()),
-            7 => Some(Color::White()),
+            0 => Some(common::black()),
+            1 => Some(common::red()),
+            2 => Some(common::green()),
+            3 => Some(common::yellow()),
+            4 => Some(common::blue()),
+            5 => Some(common::magenta()),
+            6 => Some(common::cyan()),
+            7 => Some(common::white()),
             _ => None,
         };
     }
@@ -132,32 +43,12 @@ impl Color {
                         green: ((color & 28) >> 2) * 32,
                         blue: (color & 3) * 32,
                     }),
-                    None => Some(Color::Black()),
+                    None => Some(common::black()),
                 },
                 _ => None,
             },
             None => None,
         };
-    }
-
-    /// This converts the Color given into a bright color varient.
-    pub fn make_bright(mut color: Color) -> Color {
-        if color.green == 0 && color.blue == 0 && color.red == 0 {
-            color.green = 128;
-            color.blue = 128;
-            color.red = 128;
-            return color;
-        }
-        if color.blue != 0 {
-            color.blue = 255
-        }
-        if color.green != 0 {
-            color.green = 255
-        }
-        if color.red != 0 {
-            color.red = 255
-        }
-        return color;
     }
 }
 
@@ -535,18 +426,9 @@ impl FeEscapeSequence {
     }
 }
 
-/// An element of a ANSI Complient string containing either a section of text or an escape sequence
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub enum TextElement {
-    Text(String),
-    EscapeSequence(FeEscapeSequence),
-}
+pub type TextElement = crate::common::TextElement<FeEscapeSequence>;
 
-/// a ANSI Complient string
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub struct Text {
-    text: Vec<TextElement>,
-}
+pub type Text = crate::common::Text<FeEscapeSequence>;
 
 impl Text {
     // returns a new fully allocated ansi text struct
@@ -608,7 +490,7 @@ impl Text {
             }
             let (text, opt_fe_sequence) = FeEscapeSequence::extract_from(sequence);
             if let Some(fe_sequence) = opt_fe_sequence {
-                self.text.push(TextElement::EscapeSequence(fe_sequence));
+                self.text.push(TextElement::Marker(fe_sequence));
             }
             if !text.is_empty() {
                 self.text.push(TextElement::Text(text))
@@ -623,165 +505,24 @@ impl Text {
 }
 
 #[cfg(test)]
-mod ansi_test {
+mod test {
     use std::{collections::HashMap, vec};
 
-    use crate::ansi::TextElement;
+    use crate::{ansi::TextElement, common};
 
-    use super::{Color, ControlSequence, FeEscapeSequence, SelectGraphicRendition, Text};
-
-    #[test]
-    fn color_back() {
-        let color = Color::Black();
-        assert_eq!(color.red(), 0);
-        assert_eq!(color.green(), 0);
-        assert_eq!(color.blue(), 0);
-    }
-
-    #[test]
-    fn color_red() {
-        let color = Color::Red();
-        assert_eq!(color.red(), 128);
-        assert_eq!(color.green(), 0);
-        assert_eq!(color.blue(), 0);
-    }
-
-    #[test]
-    fn color_green() {
-        let color = Color::Green();
-        assert_eq!(color.red(), 0);
-        assert_eq!(color.green(), 128);
-        assert_eq!(color.blue(), 0);
-    }
-
-    #[test]
-    fn color_blue() {
-        let color = Color::Blue();
-        assert_eq!(color.red(), 0);
-        assert_eq!(color.green(), 0);
-        assert_eq!(color.blue(), 128);
-    }
-
-    #[test]
-    fn color_yellow() {
-        let color = Color::Yellow();
-        assert_eq!(color.red(), 128);
-        assert_eq!(color.green(), 128);
-        assert_eq!(color.blue(), 0);
-    }
-
-    #[test]
-    fn color_magenta() {
-        let color = Color::Magenta();
-        assert_eq!(color.red(), 128);
-        assert_eq!(color.green(), 0);
-        assert_eq!(color.blue(), 128);
-    }
-
-    #[test]
-    fn color_cyan() {
-        let color = Color::Cyan();
-        assert_eq!(color.red(), 0);
-        assert_eq!(color.green(), 128);
-        assert_eq!(color.blue(), 128);
-    }
-
-    #[test]
-    fn color_white() {
-        let color = Color::White();
-        assert_eq!(color.red(), 192);
-        assert_eq!(color.green(), 192);
-        assert_eq!(color.blue(), 192);
-    }
-
-    #[test]
-    fn color_make_bright() {
-        let tests = [
-            (
-                Color::Black(),
-                Color {
-                    red: 128,
-                    green: 128,
-                    blue: 128,
-                },
-            ),
-            (
-                Color::Blue(),
-                Color {
-                    red: 0,
-                    green: 0,
-                    blue: 255,
-                },
-            ),
-            (
-                Color::Green(),
-                Color {
-                    red: 0,
-                    green: 255,
-                    blue: 0,
-                },
-            ),
-            (
-                Color::Red(),
-                Color {
-                    red: 255,
-                    green: 0,
-                    blue: 0,
-                },
-            ),
-            (
-                Color::Yellow(),
-                Color {
-                    red: 255,
-                    green: 255,
-                    blue: 0,
-                },
-            ),
-            (
-                Color::Cyan(),
-                Color {
-                    red: 0,
-                    green: 255,
-                    blue: 255,
-                },
-            ),
-            (
-                Color::Magenta(),
-                Color {
-                    red: 255,
-                    green: 0,
-                    blue: 255,
-                },
-            ),
-            (
-                Color::White(),
-                Color {
-                    red: 255,
-                    green: 255,
-                    blue: 255,
-                },
-            ),
-        ];
-        for test in tests {
-            let (mut color, expected_result) = test;
-            color = Color::make_bright(color);
-            assert_eq!(color.red(), expected_result.red());
-            assert_eq!(color.green(), expected_result.green());
-            assert_eq!(color.blue(), expected_result.blue());
-        }
-    }
+    use super::{Color, ControlSequence, FeEscapeSequence, SelectGraphicRendition};
 
     #[test]
     fn color_from_index() {
         let tests = [
-            (0, Some(Color::Black())),
-            (1, Some(Color::Red())),
-            (2, Some(Color::Green())),
-            (3, Some(Color::Yellow())),
-            (4, Some(Color::Blue())),
-            (5, Some(Color::Magenta())),
-            (6, Some(Color::Cyan())),
-            (7, Some(Color::White())),
+            (0, Some(common::black())),
+            (1, Some(common::red())),
+            (2, Some(common::green())),
+            (3, Some(common::yellow())),
+            (4, Some(common::blue())),
+            (5, Some(common::magenta())),
+            (6, Some(common::cyan())),
+            (7, Some(common::white())),
             (8, None),
         ];
         for test in tests {
@@ -1004,97 +745,97 @@ mod ansi_test {
             (
                 90 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Black()),
+                    Color::make_bright(common::black()),
                 ))),
             ),
             (
                 91 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Red()),
+                    Color::make_bright(common::red()),
                 ))),
             ),
             (
                 92 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Green()),
+                    Color::make_bright(common::green()),
                 ))),
             ),
             (
                 93 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Yellow()),
+                    Color::make_bright(common::yellow()),
                 ))),
             ),
             (
                 94 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Blue()),
+                    Color::make_bright(common::blue()),
                 ))),
             ),
             (
                 95 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Magenta()),
+                    Color::make_bright(common::magenta()),
                 ))),
             ),
             (
                 96 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::Cyan()),
+                    Color::make_bright(common::cyan()),
                 ))),
             ),
             (
                 97 as u8,
                 Some(SelectGraphicRendition::ForgroundColor(Some(
-                    Color::make_bright(Color::White()),
+                    Color::make_bright(common::white()),
                 ))),
             ),
             (
                 100 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Black()),
+                    Color::make_bright(common::black()),
                 ))),
             ),
             (
                 101 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Red()),
+                    Color::make_bright(common::red()),
                 ))),
             ),
             (
                 102 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Green()),
+                    Color::make_bright(common::green()),
                 ))),
             ),
             (
                 103 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Yellow()),
+                    Color::make_bright(common::yellow()),
                 ))),
             ),
             (
                 104 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Blue()),
+                    Color::make_bright(common::blue()),
                 ))),
             ),
             (
                 105 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Magenta()),
+                    Color::make_bright(common::magenta()),
                 ))),
             ),
             (
                 106 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::Cyan()),
+                    Color::make_bright(common::cyan()),
                 ))),
             ),
             (
                 107 as u8,
                 Some(SelectGraphicRendition::BackgroundColor(Some(
-                    Color::make_bright(Color::White()),
+                    Color::make_bright(common::white()),
                 ))),
             ),
         ]);
@@ -1230,10 +971,6 @@ mod ansi_test {
                 let (mut test, result) = test_case;
                 assert_eq!(ControlSequence::from(&mut test), result);
             }
-            let expected_result = match SelectGraphicRendition::from(&mut vec![n]) {
-                Some(sgr) => Some(ControlSequence::SelectGraphicalRendition(sgr)),
-                None => None,
-            };
         }
     }
 
@@ -1311,14 +1048,14 @@ mod ansi_test {
     fn test_from() {
         assert_eq!(super::Text::from("\u{001B}[m\u{001B}[32mThis is a \u{001B}[1mtest\u{001B}[22m and it should work\u{001B}[0m".to_string()),super::Text{
             text:vec![
-                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Normal))),
-                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::ForgroundColor(Color::from_index(2))))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Normal))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::ForgroundColor(Color::from_index(2))))),
                 TextElement::Text("This is a ".to_string()),
-                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Bold))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Bold))),
                 TextElement::Text("test".to_string()),
-                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::NormalIntensity))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::NormalIntensity))),
                 TextElement::Text(" and it should work".to_string()),
-                TextElement::EscapeSequence(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Normal))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Normal))),
                 ]
             }
         );
