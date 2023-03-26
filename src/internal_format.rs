@@ -5,7 +5,7 @@ type Color = common::Color;
 /// This represents the styling of text that we support as part of our output
 /// The idea is that all writers must be able to output these particular styles
 /// with out worrying about the other support by ANSI
-#[derive(PartialEq, Eq, PartialOrd)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 enum Fromatting {
     Bold,
     Faint,
@@ -95,7 +95,7 @@ type TextElement = common::TextElement<common::Toggle<Fromatting>>;
 type Text = common::Text<common::Toggle<Fromatting>>;
 
 impl Text {
-    pub fn from_ansi(text: ansi::Text) {
+    pub fn from_ansi(text: ansi::Text)  -> Text{
         let mut new_impl = Text { text: Vec::new() };
         for element in text.text.iter() {
             match element {
@@ -111,6 +111,250 @@ impl Text {
                     None => {}
                 },
             }
+        }
+        return new_impl;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::vec;
+
+    #[test]
+    pub fn formatting_from_ansi() {
+        let test_cases = vec![
+            (crate::ansi::FeEscapeSequence::SingleShiftTwo, None),
+            (crate::ansi::FeEscapeSequence::SingleShiftThree, None),
+            (crate::ansi::FeEscapeSequence::DeviceControlString, None),
+            (crate::ansi::FeEscapeSequence::OperatingSystemCommand, None),
+            (crate::ansi::FeEscapeSequence::StringTerminator, None),
+            (crate::ansi::FeEscapeSequence::StartOfString, None),
+            (crate::ansi::FeEscapeSequence::PrivacyMessage, None),
+            (
+                crate::ansi::FeEscapeSequence::ApplicationProgramCommand,
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::SelectGraphicalRendition(
+                        crate::ansi::SelectGraphicRendition::Italic,
+                    ),
+                ),
+                Some(vec![crate::common::Toggle::Set(super::Fromatting::Italic)]),
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::CursorDown(3),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::CursorForward(3),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::CursorBack(3),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::CursorNextLine(3),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::CursorPreviousLine(3),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::CursorHorizontalAbsolute(3),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::CursorPosition(3, 4),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::EraseInDisplay(3),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::EraseInLine(4),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::ScrollUp(4),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::ScrollDown(4),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::HorizonalVerticalPosition(4, 4),
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::AUXPortOn,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::AUXPortOff,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::DeviceStatusReport,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::SaveCursorPosistion,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::RestoreCursorPosistion,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::VT220Cursor,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::HideCursor,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::EnableReportingFocus,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::DisableReportingFocus,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::EnableAltScreenBuf,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::DisableAltScreenBuf,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::BracketPasteMode,
+                ),
+                None,
+            ),
+            (
+                crate::ansi::FeEscapeSequence::ControlSequence(
+                    crate::ansi::ControlSequence::NoBracketPasteMode,
+                ),
+                None,
+            ),
+        ];
+        for test_case in test_cases {
+            let (input, expected_output) = test_case;
+            assert_eq!(super::Fromatting::from_ansi(&input), expected_output)
+        }
+    }
+
+    #[test]
+    pub fn text_from_ansi() {
+        let test_cases = vec![(
+            crate::ansi::Text {
+                text: vec![
+                    crate::ansi::TextElement::Text("This".to_string()),
+                    crate::ansi::TextElement::Marker(crate::ansi::FeEscapeSequence::SingleShiftTwo),
+                    crate::ansi::TextElement::Marker(
+                        crate::ansi::FeEscapeSequence::ControlSequence(
+                            crate::ansi::ControlSequence::SelectGraphicalRendition(
+                                crate::ansi::SelectGraphicRendition::ForgroundColor(Some(
+                                    crate::common::red(),
+                                )),
+                            ),
+                        ),
+                    ),
+                    crate::ansi::TextElement::Text("is a".to_string()),
+                    crate::ansi::TextElement::Marker(
+                        crate::ansi::FeEscapeSequence::ControlSequence(
+                            crate::ansi::ControlSequence::SelectGraphicalRendition(
+                                crate::ansi::SelectGraphicRendition::Bold,
+                            ),
+                        ),
+                    ),
+                    crate::ansi::TextElement::Text("Test".to_string()),
+                    crate::ansi::TextElement::Marker(
+                        crate::ansi::FeEscapeSequence::ControlSequence(
+                            crate::ansi::ControlSequence::SelectGraphicalRendition(
+                                crate::ansi::SelectGraphicRendition::Normal,
+                            ),
+                        ),
+                    ),
+                ],
+            },
+            super::Text {
+                text: vec![
+                    super::TextElement::Text("This".to_string()),
+                    super::TextElement::Marker(crate::common::Toggle::Set(
+                        super::Fromatting::ForgroundColor(Some(crate::common::red())),
+                    )),
+                    super::TextElement::Text("is a".to_string()),
+                    super::TextElement::Marker(crate::common::Toggle::Set(super::Fromatting::Bold)),
+                    super::TextElement::Text("Test".to_string()),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::Bold)),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::Faint)),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::Italic)),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::Underline(None))),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::CrossedOut)),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::ForgroundColor(None))),
+                    super::TextElement::Marker(crate::common::Toggle::UnSet(super::Fromatting::BackgroundColor(None))),
+                ],
+            },
+        )];
+        for test_case in test_cases {
+            let (input,expected_output) = test_case;
+            assert_eq!(super::Text::from_ansi(input),expected_output)
         }
     }
 }

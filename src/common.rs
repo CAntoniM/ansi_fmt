@@ -13,6 +13,7 @@ pub enum TextElement<T> {
     Marker(T),
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Toggle<T> {
     Set(T),
     UnSet(T),
