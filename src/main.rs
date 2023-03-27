@@ -5,21 +5,16 @@ use std::{
     path::PathBuf,
 };
 
-pub mod ansi;
 pub mod common;
+pub mod input_fmt;
 pub mod internal_format;
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-enum OutputFormat {
-    Text,
-    Html,
-}
+pub mod output_fmt;
 
 #[derive(Parser, Debug)]
 struct Cli {
     //This specifies the format that will be used to format the output.
-    #[arg(long,short,value_enum,default_value_t=OutputFormat::Text)]
-    format: OutputFormat,
+    #[arg(long,short,value_enum,default_value_t=output_fmt::OutputFormat::Text)]
+    format: output_fmt::OutputFormat,
     /// This specifes the output location of the programe if none is given then
     /// we will write to Standard Out.
     #[arg(long, short)]
@@ -36,7 +31,7 @@ fn main() {
     for path in cli.paths.iter() {
         let file = File::open(path).unwrap();
         let reader = io::BufReader::new(file);
-        let mut ansi_text = ansi::Text::new();
+        let mut ansi_text = input_fmt::ansi::Text::new();
         for line in reader.lines() {
             ansi_text.read(line.unwrap());
         }
