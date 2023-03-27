@@ -20,15 +20,12 @@ pub fn from(fmt: OutputFormat, text: internal_format::Text) -> Option<Box<dyn Fo
     match fmt {
         OutputFormat::Text => Some(Box::new(TextWriter::from_text(text))),
         OutputFormat::Html => Some(Box::new(HtmlWriter::from_text(text))),
-        _ => None,
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        common::test, internal_format, internal_format::TextElement, output_fmt::text::TextWriter,
-    };
+    use crate::{internal_format, internal_format::TextElement};
 
     use super::OutputFormat;
 
