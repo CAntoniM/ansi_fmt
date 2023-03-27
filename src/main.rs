@@ -11,7 +11,7 @@ pub mod internal_format;
 pub mod output_fmt;
 
 #[derive(Parser, Debug)]
-struct Cli {
+struct App {
     //This specifies the format that will be used to format the output.
     #[arg(long,short,value_enum,default_value_t=output_fmt::OutputFormat::Text)]
     format: output_fmt::OutputFormat,
@@ -26,14 +26,21 @@ struct Cli {
     paths: Vec<PathBuf>,
 }
 
-fn main() {
-    let cli = Cli::parse();
-    for path in cli.paths.iter() {
-        let file = File::open(path).unwrap();
-        let reader = io::BufReader::new(file);
-        let mut ansi_text = input_fmt::ansi::Text::new();
-        for line in reader.lines() {
-            ansi_text.read(line.unwrap());
+impl App {
+    pub fn run(&self) -> Result<(), &'static str> {
+        for path in self.paths.iter() {
+            let file = File::open(path).unwrap();
+            let reader = io::BufReader::new(file);
+            let mut ansi_text = input_fmt::ansi::Text::new();
+            for line in reader.lines() {
+                ansi_text.read(line.unwrap());
+            }
         }
+        return Ok(());
     }
+}
+
+fn main() {
+    let app = App::parse();
+    let _ = app.run();
 }
