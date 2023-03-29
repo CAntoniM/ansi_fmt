@@ -5,7 +5,7 @@ type Color = common::Color;
 /// This represents the styling of text that we support as part of our output
 /// The idea is that all writers must be able to output these particular styles
 /// with out worrying about the other support by ANSI
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub enum Fromatting {
     Bold,
     Faint,
