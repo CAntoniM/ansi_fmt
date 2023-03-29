@@ -112,6 +112,17 @@ mod test {
             ),
             (
                 (
+                    "\x1b[01;32mTest\x1b[0m",
+                    App {
+                        format: output_fmt::OutputFormat::Html,
+                        output: Some("test.html".to_string()),
+                        paths: vec![],
+                    },
+                ),
+                "<b><span style=\"color=#0800\">Test</b></span>",
+            ),
+            (
+                (
                     "Test",
                     App {
                         format: output_fmt::OutputFormat::Text,
@@ -124,10 +135,16 @@ mod test {
         ];
         for test_case in test_cases {
             let ((text, app), expected_result) = test_case;
-            assert_eq!(
-                app.parse_text(text.to_string()).unwrap(),
-                expected_result.to_string()
-            )
+            let res = app.parse_text(text.to_string());
+            match res {
+                Ok(r) => {
+                    assert_eq!(r, expected_result.to_string())
+                }
+                Err(e) => {
+                    println!("{}", e);
+                    panic!("{}", e);
+                }
+            }
         }
     }
 }

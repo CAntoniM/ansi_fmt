@@ -54,7 +54,7 @@ impl Color {
 
 /// this is a representation of the SelectGraphicsRendidtion sequences that are commonly used in terminals.
 /// we should aim to be as accurate to the most terminals as possible and cover as many values as possible
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub enum SelectGraphicRendition {
     Normal,
     Bold,
@@ -100,10 +100,11 @@ impl SelectGraphicRendition {
     /// This will parse the args of the SelectGraphics rendition into the concreate values used internally
     /// This is expected to that either a number to represent a particular graphics change or non will be
     /// proivded at which point it will revert to the default settings
-    pub fn from(args: &mut Vec<u8>) -> Option<SelectGraphicRendition> {
+    pub fn from(args: &mut Vec<u8>) -> Vec<SelectGraphicRendition> {
         args.reverse();
-        return match args.pop() {
-            Some(arg) => match arg {
+        let mut graphics: Vec<SelectGraphicRendition> = Vec::new();
+        while let Some(arg) = args.pop() {
+            let sgr_opt = match arg {
                 0 => Some(SelectGraphicRendition::Normal),
                 1 => Some(SelectGraphicRendition::Bold),
                 2 => Some(SelectGraphicRendition::Faint),
@@ -170,9 +171,12 @@ impl SelectGraphicRendition {
                     None => Some(SelectGraphicRendition::BackgroundColor(None)),
                 },
                 _ => None,
-            },
-            None => Some(SelectGraphicRendition::Normal),
-        };
+            };
+            if let Some(sgr) = sgr_opt {
+                graphics.push(sgr)
+            }
+        }
+        return graphics;
     }
 }
 
@@ -192,7 +196,7 @@ pub enum ControlSequence {
     ScrollUp(u8),
     ScrollDown(u8),
     HorizonalVerticalPosition(u8, u8),
-    SelectGraphicalRendition(SelectGraphicRendition),
+    SelectGraphicalRendition(Vec<SelectGraphicRendition>),
     AUXPortOn,
     AUXPortOff,
     DeviceStatusReport,
@@ -244,10 +248,9 @@ impl ControlSequence {
             match c {
                 'm' => {
                     let mut args = ControlSequence::get_args(&mut text_buffer);
-                    return match SelectGraphicRendition::from(&mut args) {
-                        Some(sgr) => Some(ControlSequence::SelectGraphicalRendition(sgr)),
-                        None => None,
-                    };
+                    return Some(ControlSequence::SelectGraphicalRendition(
+                        SelectGraphicRendition::from(&mut args),
+                    ));
                 }
                 'A' => {
                     let args = ControlSequence::get_args(&mut text_buffer);
@@ -572,271 +575,271 @@ mod test {
     #[test]
     fn sgr_from() {
         let results = HashMap::from([
-            (0 as u8, Some(SelectGraphicRendition::Normal)),
-            (1 as u8, Some(SelectGraphicRendition::Bold)),
-            (2 as u8, Some(SelectGraphicRendition::Faint)),
-            (3 as u8, Some(SelectGraphicRendition::Italic)),
-            (4 as u8, Some(SelectGraphicRendition::Underline)),
-            (5 as u8, Some(SelectGraphicRendition::SlowBlink)),
-            (6 as u8, Some(SelectGraphicRendition::RapidBlink)),
-            (7 as u8, Some(SelectGraphicRendition::Invert)),
-            (8 as u8, Some(SelectGraphicRendition::Conceal)),
-            (9 as u8, Some(SelectGraphicRendition::CrossedOut)),
-            (10 as u8, Some(SelectGraphicRendition::Font(0))),
-            (11 as u8, Some(SelectGraphicRendition::Font(1))),
-            (12 as u8, Some(SelectGraphicRendition::Font(2))),
-            (13 as u8, Some(SelectGraphicRendition::Font(3))),
-            (14 as u8, Some(SelectGraphicRendition::Font(4))),
-            (15 as u8, Some(SelectGraphicRendition::Font(5))),
-            (16 as u8, Some(SelectGraphicRendition::Font(6))),
-            (17 as u8, Some(SelectGraphicRendition::Font(7))),
-            (18 as u8, Some(SelectGraphicRendition::Font(8))),
-            (19 as u8, Some(SelectGraphicRendition::Font(9))),
-            (20 as u8, Some(SelectGraphicRendition::Font(10))),
-            (21 as u8, Some(SelectGraphicRendition::DoublyUnderlined)),
-            (22 as u8, Some(SelectGraphicRendition::NormalIntensity)),
-            (23 as u8, Some(SelectGraphicRendition::NotItalic)),
-            (24 as u8, Some(SelectGraphicRendition::NotUnderlined)),
-            (25 as u8, Some(SelectGraphicRendition::NotBlinking)),
-            (26 as u8, Some(SelectGraphicRendition::ProportionalSpacing)),
-            (27 as u8, Some(SelectGraphicRendition::NotReveresed)),
-            (28 as u8, Some(SelectGraphicRendition::Reveal)),
-            (29 as u8, Some(SelectGraphicRendition::NotCrossedOut)),
+            (0 as u8, vec![SelectGraphicRendition::Normal]),
+            (1 as u8, vec![SelectGraphicRendition::Bold]),
+            (2 as u8, vec![SelectGraphicRendition::Faint]),
+            (3 as u8, vec![SelectGraphicRendition::Italic]),
+            (4 as u8, vec![SelectGraphicRendition::Underline]),
+            (5 as u8, vec![SelectGraphicRendition::SlowBlink]),
+            (6 as u8, vec![SelectGraphicRendition::RapidBlink]),
+            (7 as u8, vec![SelectGraphicRendition::Invert]),
+            (8 as u8, vec![SelectGraphicRendition::Conceal]),
+            (9 as u8, vec![SelectGraphicRendition::CrossedOut]),
+            (10 as u8, vec![SelectGraphicRendition::Font(0)]),
+            (11 as u8, vec![SelectGraphicRendition::Font(1)]),
+            (12 as u8, vec![SelectGraphicRendition::Font(2)]),
+            (13 as u8, vec![SelectGraphicRendition::Font(3)]),
+            (14 as u8, vec![SelectGraphicRendition::Font(4)]),
+            (15 as u8, vec![SelectGraphicRendition::Font(5)]),
+            (16 as u8, vec![SelectGraphicRendition::Font(6)]),
+            (17 as u8, vec![SelectGraphicRendition::Font(7)]),
+            (18 as u8, vec![SelectGraphicRendition::Font(8)]),
+            (19 as u8, vec![SelectGraphicRendition::Font(9)]),
+            (20 as u8, vec![SelectGraphicRendition::Font(10)]),
+            (21 as u8, vec![SelectGraphicRendition::DoublyUnderlined]),
+            (22 as u8, vec![SelectGraphicRendition::NormalIntensity]),
+            (23 as u8, vec![SelectGraphicRendition::NotItalic]),
+            (24 as u8, vec![SelectGraphicRendition::NotUnderlined]),
+            (25 as u8, vec![SelectGraphicRendition::NotBlinking]),
+            (26 as u8, vec![SelectGraphicRendition::ProportionalSpacing]),
+            (27 as u8, vec![SelectGraphicRendition::NotReveresed]),
+            (28 as u8, vec![SelectGraphicRendition::Reveal]),
+            (29 as u8, vec![SelectGraphicRendition::NotCrossedOut]),
             (
                 30 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_index(0))),
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_index(0))],
             ),
             (
                 31 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_index(1))),
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_index(1))],
             ),
             (
                 32 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_index(2))),
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_index(2))],
             ),
             (
                 33 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_index(3))),
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_index(3))],
             ),
             (
                 34 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_index(4))),
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_index(4))],
             ),
             (
                 35 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_index(5))),
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_index(5))],
             ),
             (
                 36 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_index(6))),
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_index(6))],
             ),
             (
                 37 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_index(7))),
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_index(7))],
             ),
             (
                 38 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Color::from_args(
+                vec![SelectGraphicRendition::ForgroundColor(Color::from_args(
                     &mut Vec::new(),
-                ))),
+                ))],
             ),
-            (39 as u8, Some(SelectGraphicRendition::ForgroundColor(None))),
+            (39 as u8, vec![SelectGraphicRendition::ForgroundColor(None)]),
             (
                 40 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_index(
                     0,
-                ))),
+                ))],
             ),
             (
                 41 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_index(
                     1,
-                ))),
+                ))],
             ),
             (
                 42 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_index(
                     2,
-                ))),
+                ))],
             ),
             (
                 43 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_index(
                     3,
-                ))),
+                ))],
             ),
             (
                 44 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_index(
                     4,
-                ))),
+                ))],
             ),
             (
                 45 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_index(
                     5,
-                ))),
+                ))],
             ),
             (
                 46 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_index(
                     6,
-                ))),
+                ))],
             ),
             (
                 47 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_index(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_index(
                     7,
-                ))),
+                ))],
             ),
             (
                 48 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Color::from_args(
+                vec![SelectGraphicRendition::BackgroundColor(Color::from_args(
                     &mut Vec::new(),
-                ))),
+                ))],
             ),
             (
                 49 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(None)),
+                vec![SelectGraphicRendition::BackgroundColor(None)],
             ),
             (
                 50 as u8,
-                Some(SelectGraphicRendition::DisableProportionalSpacing),
+                vec![SelectGraphicRendition::DisableProportionalSpacing],
             ),
-            (51 as u8, Some(SelectGraphicRendition::Framed)),
-            (52 as u8, Some(SelectGraphicRendition::Encircled)),
-            (53 as u8, Some(SelectGraphicRendition::Overlined)),
+            (51 as u8, vec![SelectGraphicRendition::Framed]),
+            (52 as u8, vec![SelectGraphicRendition::Encircled]),
+            (53 as u8, vec![SelectGraphicRendition::Overlined]),
             (
                 54 as u8,
-                Some(SelectGraphicRendition::NeitherFramedNorEncircled),
+                vec![SelectGraphicRendition::NeitherFramedNorEncircled],
             ),
-            (55 as u8, Some(SelectGraphicRendition::NotOverlined)),
+            (55 as u8, vec![SelectGraphicRendition::NotOverlined]),
             (
                 58 as u8,
-                Some(SelectGraphicRendition::SetUnderlineColor(Color::from_args(
+                vec![SelectGraphicRendition::SetUnderlineColor(Color::from_args(
                     &mut Vec::new(),
-                ))),
+                ))],
             ),
             (
                 59 as u8,
-                Some(SelectGraphicRendition::SetUnderlineColor(None)),
+                vec![SelectGraphicRendition::SetUnderlineColor(None)],
             ),
-            (60 as u8, Some(SelectGraphicRendition::IdeogramUnderline)),
+            (60 as u8, vec![SelectGraphicRendition::IdeogramUnderline]),
             (
                 61 as u8,
-                Some(SelectGraphicRendition::IdeogramDoubleUnderline),
+                vec![SelectGraphicRendition::IdeogramDoubleUnderline],
             ),
-            (62 as u8, Some(SelectGraphicRendition::IdeogramOverline)),
+            (62 as u8, vec![SelectGraphicRendition::IdeogramOverline]),
             (
                 63 as u8,
-                Some(SelectGraphicRendition::IdeogramDoubleOverline),
+                vec![SelectGraphicRendition::IdeogramDoubleOverline],
             ),
             (
                 64 as u8,
-                Some(SelectGraphicRendition::IdeogramStressMarking),
+                vec![SelectGraphicRendition::IdeogramStressMarking],
             ),
-            (65 as u8, Some(SelectGraphicRendition::NoIdeogram)),
-            (73 as u8, Some(SelectGraphicRendition::Superscript)),
-            (74 as u8, Some(SelectGraphicRendition::Subscript)),
+            (65 as u8, vec![SelectGraphicRendition::NoIdeogram]),
+            (73 as u8, vec![SelectGraphicRendition::Superscript]),
+            (74 as u8, vec![SelectGraphicRendition::Subscript]),
             (
                 75 as u8,
-                Some(SelectGraphicRendition::NethirSuperOrSubScript),
+                vec![SelectGraphicRendition::NethirSuperOrSubScript],
             ),
             (
                 90 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Some(
+                vec![SelectGraphicRendition::ForgroundColor(Some(
                     Color::make_bright(common::black()),
-                ))),
+                ))],
             ),
             (
                 91 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Some(
+                vec![SelectGraphicRendition::ForgroundColor(Some(
                     Color::make_bright(common::red()),
-                ))),
+                ))],
             ),
             (
                 92 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Some(
+                vec![SelectGraphicRendition::ForgroundColor(Some(
                     Color::make_bright(common::green()),
-                ))),
+                ))],
             ),
             (
                 93 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Some(
+                vec![SelectGraphicRendition::ForgroundColor(Some(
                     Color::make_bright(common::yellow()),
-                ))),
+                ))],
             ),
             (
                 94 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Some(
+                vec![SelectGraphicRendition::ForgroundColor(Some(
                     Color::make_bright(common::blue()),
-                ))),
+                ))],
             ),
             (
                 95 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Some(
+                vec![SelectGraphicRendition::ForgroundColor(Some(
                     Color::make_bright(common::magenta()),
-                ))),
+                ))],
             ),
             (
                 96 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Some(
+                vec![SelectGraphicRendition::ForgroundColor(Some(
                     Color::make_bright(common::cyan()),
-                ))),
+                ))],
             ),
             (
                 97 as u8,
-                Some(SelectGraphicRendition::ForgroundColor(Some(
+                vec![SelectGraphicRendition::ForgroundColor(Some(
                     Color::make_bright(common::white()),
-                ))),
+                ))],
             ),
             (
                 100 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Some(
+                vec![SelectGraphicRendition::BackgroundColor(Some(
                     Color::make_bright(common::black()),
-                ))),
+                ))],
             ),
             (
                 101 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Some(
+                vec![SelectGraphicRendition::BackgroundColor(Some(
                     Color::make_bright(common::red()),
-                ))),
+                ))],
             ),
             (
                 102 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Some(
+                vec![SelectGraphicRendition::BackgroundColor(Some(
                     Color::make_bright(common::green()),
-                ))),
+                ))],
             ),
             (
                 103 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Some(
+                vec![SelectGraphicRendition::BackgroundColor(Some(
                     Color::make_bright(common::yellow()),
-                ))),
+                ))],
             ),
             (
                 104 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Some(
+                vec![SelectGraphicRendition::BackgroundColor(Some(
                     Color::make_bright(common::blue()),
-                ))),
+                ))],
             ),
             (
                 105 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Some(
+                vec![SelectGraphicRendition::BackgroundColor(Some(
                     Color::make_bright(common::magenta()),
-                ))),
+                ))],
             ),
             (
                 106 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Some(
+                vec![SelectGraphicRendition::BackgroundColor(Some(
                     Color::make_bright(common::cyan()),
-                ))),
+                ))],
             ),
             (
                 107 as u8,
-                Some(SelectGraphicRendition::BackgroundColor(Some(
+                vec![SelectGraphicRendition::BackgroundColor(Some(
                     Color::make_bright(common::white()),
-                ))),
+                ))],
             ),
         ]);
         for i in 0..=255 as u8 {
@@ -848,7 +851,7 @@ mod test {
                     assert_eq!(&result, expected_result);
                 }
                 None => {
-                    assert_eq!(result, None)
+                    assert!(result.len() == 0)
                 }
             }
         }
@@ -1000,9 +1003,9 @@ mod test {
             (
                 "[31mtest".chars(),
                 Some(FeEscapeSequence::ControlSequence(
-                    ControlSequence::SelectGraphicalRendition(
+                    ControlSequence::SelectGraphicalRendition(vec![
                         SelectGraphicRendition::ForgroundColor(Color::from_index(1)),
-                    ),
+                    ]),
                 )),
             ),
         ] {
@@ -1031,9 +1034,9 @@ mod test {
             (
                 "[31mtest",
                 Some(FeEscapeSequence::ControlSequence(
-                    ControlSequence::SelectGraphicalRendition(
+                    ControlSequence::SelectGraphicalRendition(vec![
                         SelectGraphicRendition::ForgroundColor(Color::from_index(1)),
-                    ),
+                    ]),
                 )),
             ),
         ] {
@@ -1048,14 +1051,14 @@ mod test {
     fn test_from() {
         assert_eq!(super::Text::from("\u{001B}[m\u{001B}[32mThis is a \u{001B}[1mtest\u{001B}[22m and it should work\u{001B}[0m".to_string()),super::Text{
             text:vec![
-                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Normal))),
-                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::ForgroundColor(Color::from_index(2))))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(vec![SelectGraphicRendition::Normal]))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(vec![SelectGraphicRendition::ForgroundColor(Color::from_index(2))]))),
                 TextElement::Text("This is a ".to_string()),
-                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Bold))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(vec![SelectGraphicRendition::Bold]))),
                 TextElement::Text("test".to_string()),
-                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::NormalIntensity))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(vec![SelectGraphicRendition::NormalIntensity]))),
                 TextElement::Text(" and it should work".to_string()),
-                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(SelectGraphicRendition::Normal))),
+                TextElement::Marker(FeEscapeSequence::ControlSequence(ControlSequence::SelectGraphicalRendition(vec![SelectGraphicRendition::Normal]))),
                 ]
             }
         );

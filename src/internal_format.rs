@@ -20,69 +20,69 @@ impl Fromatting {
     pub fn from_ansi(fe: &ansi::FeEscapeSequence) -> Option<Vec<common::Toggle<Fromatting>>> {
         return match fe {
             ansi::FeEscapeSequence::ControlSequence(cls) => match cls {
-                ansi::ControlSequence::SelectGraphicalRendition(sgr) => match sgr {
-                    ansi::SelectGraphicRendition::Bold => {
-                        Some(vec![common::Toggle::Set(Fromatting::Bold)])
+                ansi::ControlSequence::SelectGraphicalRendition(sgrs) => {
+                    let mut results: Vec<common::Toggle<Fromatting>> = Vec::new();
+                    for sgr in sgrs {
+                        match sgr {
+                            ansi::SelectGraphicRendition::Bold => {
+                                results.push(common::Toggle::Set(Fromatting::Bold))
+                            }
+                            ansi::SelectGraphicRendition::Faint => {
+                                results.push(common::Toggle::Set(Fromatting::Faint))
+                            }
+                            ansi::SelectGraphicRendition::Underline => {
+                                results.push(common::Toggle::Set(Fromatting::Underline(None)))
+                            }
+                            ansi::SelectGraphicRendition::Italic => {
+                                results.push(common::Toggle::Set(Fromatting::Italic))
+                            }
+                            ansi::SelectGraphicRendition::CrossedOut => {
+                                results.push(common::Toggle::Set(Fromatting::CrossedOut))
+                            }
+                            ansi::SelectGraphicRendition::ForgroundColor(None) => results
+                                .push(common::Toggle::UnSet(Fromatting::ForgroundColor(None))),
+                            ansi::SelectGraphicRendition::BackgroundColor(None) => results
+                                .push(common::Toggle::UnSet(Fromatting::BackgroundColor(None))),
+                            ansi::SelectGraphicRendition::ForgroundColor(Some(color)) => results
+                                .push(common::Toggle::Set(Fromatting::ForgroundColor(Some(
+                                    color.clone(),
+                                )))),
+                            ansi::SelectGraphicRendition::BackgroundColor(Some(color)) => results
+                                .push(common::Toggle::Set(Fromatting::BackgroundColor(Some(
+                                    color.clone(),
+                                )))),
+                            ansi::SelectGraphicRendition::Normal => {
+                                results.push(common::Toggle::UnSet(Fromatting::Bold));
+                                results.push(common::Toggle::UnSet(Fromatting::Faint));
+                                results.push(common::Toggle::UnSet(Fromatting::Italic));
+                                results.push(common::Toggle::UnSet(Fromatting::Underline(None)));
+                                results.push(common::Toggle::UnSet(Fromatting::CrossedOut));
+                                results
+                                    .push(common::Toggle::UnSet(Fromatting::ForgroundColor(None)));
+                                results
+                                    .push(common::Toggle::UnSet(Fromatting::BackgroundColor(None)));
+                            }
+                            ansi::SelectGraphicRendition::NormalIntensity => {
+                                results.push(common::Toggle::UnSet(Fromatting::Bold));
+                                results.push(common::Toggle::UnSet(Fromatting::Faint));
+                            }
+                            ansi::SelectGraphicRendition::NotUnderlined => {
+                                results.push(common::Toggle::UnSet(Fromatting::Underline(None)))
+                            }
+                            ansi::SelectGraphicRendition::NotItalic => {
+                                results.push(common::Toggle::UnSet(Fromatting::Italic))
+                            }
+                            ansi::SelectGraphicRendition::NotCrossedOut => {
+                                results.push(common::Toggle::UnSet(Fromatting::CrossedOut))
+                            }
+                            ansi::SelectGraphicRendition::SetUnderlineColor(None) => {
+                                results.push(common::Toggle::UnSet(Fromatting::Underline(None)))
+                            }
+                            _ => {}
+                        };
                     }
-                    ansi::SelectGraphicRendition::Faint => {
-                        Some(vec![common::Toggle::Set(Fromatting::Faint)])
-                    }
-                    ansi::SelectGraphicRendition::Underline => {
-                        Some(vec![common::Toggle::Set(Fromatting::Underline(None))])
-                    }
-                    ansi::SelectGraphicRendition::Italic => {
-                        Some(vec![common::Toggle::Set(Fromatting::Italic)])
-                    }
-                    ansi::SelectGraphicRendition::CrossedOut => {
-                        Some(vec![common::Toggle::Set(Fromatting::CrossedOut)])
-                    }
-                    ansi::SelectGraphicRendition::ForgroundColor(None) => {
-                        Some(vec![common::Toggle::UnSet(Fromatting::ForgroundColor(
-                            None,
-                        ))])
-                    }
-                    ansi::SelectGraphicRendition::BackgroundColor(None) => {
-                        Some(vec![common::Toggle::UnSet(Fromatting::BackgroundColor(
-                            None,
-                        ))])
-                    }
-                    ansi::SelectGraphicRendition::ForgroundColor(Some(color)) => {
-                        Some(vec![common::Toggle::Set(Fromatting::ForgroundColor(Some(
-                            color.clone(),
-                        )))])
-                    }
-                    ansi::SelectGraphicRendition::BackgroundColor(Some(color)) => {
-                        Some(vec![common::Toggle::Set(Fromatting::BackgroundColor(
-                            Some(color.clone()),
-                        ))])
-                    }
-                    ansi::SelectGraphicRendition::Normal => Some(vec![
-                        common::Toggle::UnSet(Fromatting::Bold),
-                        common::Toggle::UnSet(Fromatting::Faint),
-                        common::Toggle::UnSet(Fromatting::Italic),
-                        common::Toggle::UnSet(Fromatting::Underline(None)),
-                        common::Toggle::UnSet(Fromatting::CrossedOut),
-                        common::Toggle::UnSet(Fromatting::ForgroundColor(None)),
-                        common::Toggle::UnSet(Fromatting::BackgroundColor(None)),
-                    ]),
-                    ansi::SelectGraphicRendition::NormalIntensity => Some(vec![
-                        common::Toggle::UnSet(Fromatting::Bold),
-                        common::Toggle::UnSet(Fromatting::Faint),
-                    ]),
-                    ansi::SelectGraphicRendition::NotUnderlined => {
-                        Some(vec![common::Toggle::UnSet(Fromatting::Underline(None))])
-                    }
-                    ansi::SelectGraphicRendition::NotItalic => {
-                        Some(vec![common::Toggle::UnSet(Fromatting::Italic)])
-                    }
-                    ansi::SelectGraphicRendition::NotCrossedOut => {
-                        Some(vec![common::Toggle::UnSet(Fromatting::CrossedOut)])
-                    }
-                    ansi::SelectGraphicRendition::SetUnderlineColor(None) => {
-                        Some(vec![common::Toggle::UnSet(Fromatting::Underline(None))])
-                    }
-                    _ => None,
-                },
+                    return Some(results);
+                }
                 _ => None,
             },
             _ => None,
@@ -134,9 +134,9 @@ mod test {
             (ansi::FeEscapeSequence::ApplicationProgramCommand, None),
             (
                 ansi::FeEscapeSequence::ControlSequence(
-                    ansi::ControlSequence::SelectGraphicalRendition(
+                    ansi::ControlSequence::SelectGraphicalRendition(vec![
                         ansi::SelectGraphicRendition::Italic,
-                    ),
+                    ]),
                 ),
                 Some(vec![crate::common::Toggle::Set(super::Fromatting::Italic)]),
             ),
@@ -269,21 +269,21 @@ mod test {
                     ansi::TextElement::Text("This".to_string()),
                     ansi::TextElement::Marker(ansi::FeEscapeSequence::SingleShiftTwo),
                     ansi::TextElement::Marker(ansi::FeEscapeSequence::ControlSequence(
-                        ansi::ControlSequence::SelectGraphicalRendition(
+                        ansi::ControlSequence::SelectGraphicalRendition(vec![
                             ansi::SelectGraphicRendition::ForgroundColor(Some(common::red())),
-                        ),
+                        ]),
                     )),
                     ansi::TextElement::Text("is a".to_string()),
                     ansi::TextElement::Marker(ansi::FeEscapeSequence::ControlSequence(
-                        ansi::ControlSequence::SelectGraphicalRendition(
+                        ansi::ControlSequence::SelectGraphicalRendition(vec![
                             ansi::SelectGraphicRendition::Bold,
-                        ),
+                        ]),
                     )),
                     ansi::TextElement::Text("Test".to_string()),
                     ansi::TextElement::Marker(ansi::FeEscapeSequence::ControlSequence(
-                        ansi::ControlSequence::SelectGraphicalRendition(
+                        ansi::ControlSequence::SelectGraphicalRendition(vec![
                             ansi::SelectGraphicRendition::Normal,
-                        ),
+                        ]),
                     )),
                 ],
             },
