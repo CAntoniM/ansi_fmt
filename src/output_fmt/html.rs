@@ -61,15 +61,15 @@ impl std::fmt::Display for HtmlWriter {
                                 if let Err(e) = fmt.write_str(format!("<u style=\"-webkit-text-decoration-color:#{:x?}{:x?}{:x?}\">",color.red,color.green,color.blue).as_str()) {
                                         return Err(e);
                                 }
-                                current_active_fmt.push(f.clone())
+                                current_active_fmt
+                                    .push(internal_format::Fromatting::Underline(None))
                             }
                             None => {
-                                if let Err(e) = fmt.write_str(
-                                    "<u style=\"-webkit-text-decoration-color:#{:x?}{:x?}{:x?}\">",
-                                ) {
+                                if let Err(e) = fmt.write_str("<u>") {
                                     return Err(e);
                                 }
-                                current_active_fmt.push(f.clone())
+                                current_active_fmt
+                                    .push(internal_format::Fromatting::Underline(None))
                             }
                         },
                         internal_format::Fromatting::CrossedOut => {
@@ -89,7 +89,8 @@ impl std::fmt::Display for HtmlWriter {
                                 ) {
                                     return Err(e);
                                 }
-                                current_active_fmt.push(f.clone())
+                                current_active_fmt
+                                    .push(internal_format::Fromatting::ForgroundColor(None))
                             }
                         }
                         internal_format::Fromatting::BackgroundColor(o) => {
@@ -103,7 +104,8 @@ impl std::fmt::Display for HtmlWriter {
                                 ) {
                                     return Err(e);
                                 }
-                                current_active_fmt.push(f.clone())
+                                current_active_fmt
+                                    .push(internal_format::Fromatting::BackgroundColor(None))
                             }
                         }
                     },
@@ -133,7 +135,9 @@ impl std::fmt::Display for HtmlWriter {
                             }
                         }
                         internal_format::Fromatting::Underline(_o) => {
-                            if current_active_fmt.contains(f) {
+                            if current_active_fmt
+                                .contains(&internal_format::Fromatting::Underline(None))
+                            {
                                 if let Err(e) = fmt.write_str("</u>") {
                                     return Err(e);
                                 }
@@ -149,7 +153,9 @@ impl std::fmt::Display for HtmlWriter {
                             }
                         }
                         internal_format::Fromatting::ForgroundColor(_o) => {
-                            if current_active_fmt.contains(f) {
+                            if current_active_fmt
+                                .contains(&internal_format::Fromatting::ForgroundColor(None))
+                            {
                                 if let Err(e) = fmt.write_str("</span>") {
                                     return Err(e);
                                 }
@@ -157,7 +163,9 @@ impl std::fmt::Display for HtmlWriter {
                             }
                         }
                         internal_format::Fromatting::BackgroundColor(_o) => {
-                            if current_active_fmt.contains(f) {
+                            if current_active_fmt
+                                .contains(&internal_format::Fromatting::BackgroundColor(None))
+                            {
                                 if let Err(e) = fmt.write_str("</span>") {
                                     return Err(e);
                                 }
