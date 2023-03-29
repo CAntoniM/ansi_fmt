@@ -1,7 +1,7 @@
 use clap::Parser;
 use std::{
     fs::File,
-    io::{self, BufRead, Write},
+    io::{self, Write},
     path::PathBuf,
 };
 
@@ -37,18 +37,18 @@ impl App {
                     .open(path)
                 {
                     Ok(mut file) => {
-                        if let Err(e) = file.write(string.as_bytes()) {
+                        if let Err(_e) = file.write(string.as_bytes()) {
                             return Err("Failed to write to file");
                         }
                         return Ok(());
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         return Err("failed to open file");
                     }
                 }
             }
             None => {
-                if let Err(e) = std::io::stdout().write(string.as_bytes()) {
+                if let Err(_e) = std::io::stdout().write(string.as_bytes()) {
                     return Err("failed to write to standard out");
                 }
                 return Ok(());
@@ -56,15 +56,12 @@ impl App {
         }
     }
 
-    pub fn parse_text(&self, string: String) -> Result<(), &'static str> {
+    pub fn parse_text(&self, string: String) -> Result<String, &'static str> {
         let mut ansi_text = input_fmt::ansi::Text::new();
         ansi_text.read(string);
         match output_fmt::from(self.format, internal_format::Text::from_ansi(ansi_text)) {
             Some(formater) => {
-                if let Err(e) = self.write(&formater.to_string()) {
-                    return Err(e);
-                }
-                return Ok(());
+                return Ok(formater.to_string());
             }
             None => return Err("Failed to find a writer for the given output format."),
         }
@@ -78,11 +75,60 @@ impl App {
                 return Err(e);
             }
         }
-        return self.parse_text(std::io::read_to_string(std::io::stdin()).unwrap());
+        match self.parse_text(std::io::read_to_string(std::io::stdin()).unwrap()) {
+            Ok(output_text) => {
+                if let Err(e) = self.write(&output_text) {
+                    return Err(e);
+                }
+            }
+            Err(e) => return Err(e),
+        }
+        return Ok(());
     }
 }
 
-fn main() {
+fn main() -> Result<(), &'static str> {
     let app = App::parse();
-    let _ = app.run();
+    return app.run();
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{output_fmt, App};
+
+    #[test]
+    pub fn app_parse_text() {
+        let test_cases = [
+            (
+                (
+                    "\x1b[93m\x1b[1mTest\x1b[0m",
+                    App {
+                        format: output_fmt::OutputFormat::Text,
+                        output: Some("test.txt".to_string()),
+                        paths: vec![],
+                    },
+                ),
+                "Test",
+            ),
+            (
+                (
+                    "Test",
+                    App {
+                        format: output_fmt::OutputFormat::Text,
+                        output: Some("test.txt".to_string()),
+                        paths: vec![],
+                    },
+                ),
+                "Test",
+            ),
+        ];
+        for test_case in test_cases {
+            let ((text, app), expected_result) = test_case;
+            assert_eq!(
+                app.parse_text(text.to_string()).unwrap(),
+                expected_result.to_string()
+            )
+        }
+    }
+
 }
