@@ -31,6 +31,41 @@ readable logs or process existing logs to make them easier to read.
 
 ## Examples
 
+Below is a series of examples that show off the intended usecases of ansi_fmt
+
+### inline file processing
+
+this is indended to be able for you to be able to remove to put in line as part 
+of a build command to strip and escape seqeunces from them for use in build logs
+
+```bash
+    make VERBOSE=1 | ansi_fmt --format html --ouput build_log.html
+```
+
+or
+
+```bash
+    make VERBOSE=1 | ansi_fmt --ouput build.log
+```
+
+
+### batch file processing 
+
+This is where you have a serires of logs that you wish to remove the escape
+sequences from to make it easier to read outside of the terminal.
+
+```bash
+    ansi_fmt --format html --ouput build_log.html test1.log test2.log ...
+```
+
+or
+
+```bash
+    ansi_fmt --ouput build.log test1.log test2.log ...
+```
+
+
+
 ## The Theory
 
 So what are ANSI Control codes? these are a set of formatting instructions that
