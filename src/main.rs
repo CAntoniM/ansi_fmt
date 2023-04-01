@@ -1,9 +1,10 @@
-use clap::{builder::Str, Parser};
+#![deny(warnings)]
+
+use clap::{Parser};
 use std::{
     fs::File,
     io::{self, BufRead, Write},
     path::PathBuf,
-    process::Output,
     sync::mpsc::channel,
 };
 use threadpool::ThreadPool;
