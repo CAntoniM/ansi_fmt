@@ -1,9 +1,13 @@
+#![deny(warnings)]
+
 use clap::Parser;
 use std::{
     fs::File,
-    io::{self, Write},
+    io::{self, BufRead, Write},
     path::PathBuf,
+    sync::mpsc::channel,
 };
+use threadpool::ThreadPool;
 
 pub mod common;
 pub mod input_fmt;
@@ -24,77 +28,118 @@ struct App {
     /// here we will read from standard in.
     #[arg(value_name = "FILE")]
     paths: Vec<PathBuf>,
+    ///This specifies the amount of threads that are meant launched process the data
+    ///Just a note this will only provide more proformance if you have a large
+    ///amount of threads.
+    #[arg(short, long, default_value_t = 1)]
+    threads: usize,
 }
 
-impl App {
-    pub fn write(&self, string: &String) -> Result<(), &'static str> {
-        match self.output.clone() {
-            Some(path) => {
-                match std::fs::OpenOptions::new()
-                    .write(true)
-                    .append(true)
-                    .create(true)
-                    .open(path)
-                {
-                    Ok(mut file) => {
-                        if let Err(_e) = file.write(string.as_bytes()) {
-                            return Err("Failed to write to file");
-                        }
-                        return Ok(());
-                    }
-                    Err(_e) => {
-                        return Err("failed to open file");
-                    }
-                }
-            }
-            None => {
-                if let Err(_e) = std::io::stdout().write(string.as_bytes()) {
-                    return Err("failed to write to standard out");
-                }
-                return Ok(());
-            }
+pub fn parse_text(format: &output_fmt::OutputFormat, string: String) -> Result<String, String> {
+    let mut ansi_text = input_fmt::ansi::Text::new();
+    ansi_text.read(string);
+    match output_fmt::from(format.clone(), internal_format::Text::from_ansi(ansi_text)) {
+        Some(formater) => {
+            return Ok(formater.to_string());
         }
+        None => return Err("Failed to find a writer for the given output format.".to_string()),
     }
+}
 
-    pub fn parse_text(&self, string: String) -> Result<String, &'static str> {
-        let mut ansi_text = input_fmt::ansi::Text::new();
-        ansi_text.read(string);
-        match output_fmt::from(self.format, internal_format::Text::from_ansi(ansi_text)) {
-            Some(formater) => {
-                return Ok(formater.to_string());
-            }
-            None => return Err("Failed to find a writer for the given output format."),
-        }
-    }
-
-    pub fn run(&self) -> Result<(), &'static str> {
-        for path in self.paths.iter() {
-            let file = File::open(path).unwrap();
+pub fn run_async(
+    paths: Vec<PathBuf>,
+    threads: usize,
+    format: output_fmt::OutputFormat,
+) -> Result<Vec<String>, String> {
+    let pool = ThreadPool::new(threads);
+    let mut results: Vec<String> = Vec::new();
+    let tp_fmt = format.clone();
+    let (tx, rx) = channel();
+    for path in paths.iter() {
+        let tp_path = path.clone();
+        let tp_tx = tx.clone();
+        pool.execute(move || {
+            let file = File::open(tp_path).unwrap();
             let reader = io::BufReader::new(file);
-            if let Err(e) = self.parse_text(std::io::read_to_string(reader).unwrap()) {
+            match parse_text(&tp_fmt, std::io::read_to_string(reader).unwrap()) {
+                Ok(output_text) => {
+                    tp_tx.send(Ok(output_text)).unwrap();
+                }
+                Err(e) => {
+                    tp_tx.send(Err(e)).unwrap();
+                }
+            }
+        });
+    }
+
+    for result in rx.iter().take(paths.len()) {
+        match result {
+            Ok(output_txt) => {
+                results.push(output_txt);
+            }
+            Err(e) => {
                 return Err(e);
             }
         }
-        match self.parse_text(std::io::read_to_string(std::io::stdin()).unwrap()) {
-            Ok(output_text) => {
-                if let Err(e) = self.write(&output_text) {
-                    return Err(e);
-                }
-            }
-            Err(e) => return Err(e),
-        }
-        return Ok(());
     }
+
+    return Ok(results);
 }
 
-fn main() -> Result<(), &'static str> {
+pub fn run_stream(output: Option<String>, format: output_fmt::OutputFormat) -> Result<(), String> {
+    let mut out_writer = match &output {
+        Some(x) => Box::new(File::create(x).unwrap()) as Box<dyn Write>,
+        None => Box::new(io::stdout()) as Box<dyn Write>,
+    };
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        match line {
+            Ok(txt) => match parse_text(&format, txt + "\n") {
+                Ok(output_text) => {
+                    out_writer.write(output_text.as_bytes()).unwrap();
+                }
+                Err(e) => return Err(e),
+            },
+            Err(e) => {
+                return Err(e.to_string());
+            }
+        }
+    }
+    return Ok(());
+}
+
+fn main() -> Result<(), String> {
     let app = App::parse();
-    return app.run();
+    let mut out_writer = match &app.output {
+        Some(x) => Box::new(File::create(x).unwrap()) as Box<dyn Write>,
+        None => Box::new(io::stdout()) as Box<dyn Write>,
+    };
+    if app.paths.len() > 0 {
+        match run_async(app.paths, app.threads, app.format) {
+            Ok(output_text) => {
+                for text in output_text.iter() {
+                    if let Err(e) = out_writer.write(text.as_bytes()) {
+                        return Err(e.to_string());
+                    }
+                }
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        }
+    } else {
+        match run_stream(app.output, app.format) {
+            Ok(_) => {}
+            Err(e) => return Err(e),
+        }
+    }
+
+    return Ok(());
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{output_fmt, App};
+    use crate::{output_fmt, parse_text, App};
 
     #[test]
     pub fn app_parse_text() {
@@ -106,6 +151,7 @@ mod test {
                         format: output_fmt::OutputFormat::Text,
                         output: Some("test.txt".to_string()),
                         paths: vec![],
+                        threads: 1,
                     },
                 ),
                 "Test",
@@ -117,6 +163,7 @@ mod test {
                         format: output_fmt::OutputFormat::Html,
                         output: Some("test.html".to_string()),
                         paths: vec![],
+                        threads: 1,
                     },
                 ),
                 "<b><span style=\"color=#0800\">Test</b></span>",
@@ -128,6 +175,7 @@ mod test {
                         format: output_fmt::OutputFormat::Text,
                         output: Some("test.txt".to_string()),
                         paths: vec![],
+                        threads: 1,
                     },
                 ),
                 "Test",
@@ -135,7 +183,7 @@ mod test {
         ];
         for test_case in test_cases {
             let ((text, app), expected_result) = test_case;
-            let res = app.parse_text(text.to_string());
+            let res = parse_text(&app.format, text.to_string());
             match res {
                 Ok(r) => {
                     assert_eq!(r, expected_result.to_string())
