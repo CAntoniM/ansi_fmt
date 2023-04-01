@@ -1,6 +1,6 @@
 #![deny(warnings)]
 
-use clap::{Parser};
+use clap::Parser;
 use std::{
     fs::File,
     io::{self, BufRead, Write},
