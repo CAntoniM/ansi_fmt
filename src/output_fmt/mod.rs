@@ -66,7 +66,7 @@ mod test {
                     },
                     OutputFormat::Html,
                 ),
-                "<b>test</b> test_tmp.".to_string(),
+                "<span style=\"font-weight:bold;\">test</span> test_tmp.".to_string(),
             ),
         ];
         for test_case in test_cases {

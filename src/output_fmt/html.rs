@@ -26,153 +26,109 @@ fn remove_fmt(
     }
 }
 
+fn contains_fmt(
+    fmt: &internal_format::Fromatting,
+    current_active_formats: &Vec<internal_format::Fromatting>,
+) -> bool {
+    for format in current_active_formats.iter() {
+        match format {
+            internal_format::Fromatting::BackgroundColor(_) => {
+                if fmt.clone() == internal_format::Fromatting::BackgroundColor(None) {
+                    return true;
+                }
+            }
+            internal_format::Fromatting::ForgroundColor(_) => {
+                if fmt.clone() == internal_format::Fromatting::ForgroundColor(None) {
+                    return true;
+                }
+            }
+            internal_format::Fromatting::Underline(_) => {
+                if fmt.clone() == internal_format::Fromatting::Underline(None) {
+                    return true;
+                }
+            }
+            _ => {
+                if fmt.clone() == format.clone() {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+fn formats_to_styles(current_active_formats: &Vec<internal_format::Fromatting>) -> String {
+    let mut output_buffer = String::new();
+    for fmt in current_active_formats.iter() {
+        match fmt {
+            internal_format::Fromatting::Bold => output_buffer.push_str("font-weight:bold"),
+            internal_format::Fromatting::Faint => output_buffer.push_str("font-weight:lighter"),
+            internal_format::Fromatting::Italic => output_buffer.push_str("font-style:italic"),
+            internal_format::Fromatting::Underline(Some(c)) => output_buffer.push_str(
+                format!(
+                    "font-decoration:line-through;text-decoration-color:#{:x}{:x}{:x}",
+                    c.red(),
+                    c.blue(),
+                    c.green()
+                )
+                .as_str(),
+            ),
+            internal_format::Fromatting::Underline(None) => {
+                output_buffer.push_str("font-decoration:line-through")
+            }
+            internal_format::Fromatting::CrossedOut => {
+                output_buffer.push_str("font-decoration:line-through")
+            }
+            internal_format::Fromatting::ForgroundColor(None) => {
+                output_buffer.push_str("color:inherit")
+            }
+            internal_format::Fromatting::BackgroundColor(None) => {
+                output_buffer.push_str("background-color:inherit")
+            }
+            internal_format::Fromatting::ForgroundColor(Some(c)) => output_buffer
+                .push_str(format!("color:#{:x}{:x}{:x}", c.red(), c.blue(), c.green()).as_str()),
+            internal_format::Fromatting::BackgroundColor(Some(c)) => output_buffer.push_str(
+                format!(
+                    "background-color:#{:x}{:x}{:x}",
+                    c.red(),
+                    c.blue(),
+                    c.green()
+                )
+                .as_str(),
+            ),
+        };
+        output_buffer.push(';');
+    }
+    return output_buffer;
+}
+
 impl std::fmt::Display for HtmlWriter {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut current_active_fmt: Vec<internal_format::Fromatting> = Vec::new();
         for element in self.text.text.iter() {
             match element {
                 internal_format::TextElement::Text(t) => {
-                    if let Err(e) = fmt.write_str(t.as_str()) {
+                    let fmt_string: String;
+                    if current_active_fmt.len() > 0 {
+                        fmt_string = format!(
+                            "<span style=\"{}\">{}</span>",
+                            formats_to_styles(&current_active_fmt),
+                            t
+                        )
+                    } else {
+                        fmt_string = t.clone();
+                    }
+                    if let Err(e) = fmt.write_str(&fmt_string.as_str()) {
                         return Err(e);
                     }
                 }
                 internal_format::TextElement::Marker(m) => match m {
-                    common::Toggle::Set(f) => match f {
-                        internal_format::Fromatting::Bold => {
-                            if let Err(e) = fmt.write_str("<b>") {
-                                return Err(e);
-                            }
-                            current_active_fmt.push(f.clone())
+                    common::Toggle::Set(f) => current_active_fmt.push(f.clone()),
+                    common::Toggle::UnSet(f) => {
+                        if contains_fmt(f, &current_active_fmt) {
+                            remove_fmt(f, &mut current_active_fmt);
                         }
-                        internal_format::Fromatting::Faint => {
-                            if let Err(e) = fmt.write_str("<span style=\"font-weight:lighter;\">") {
-                                return Err(e);
-                            }
-                            current_active_fmt.push(f.clone())
-                        }
-                        internal_format::Fromatting::Italic => {
-                            if let Err(e) = fmt.write_str("<span style=\"font-style:italic;\">") {
-                                return Err(e);
-                            }
-                            current_active_fmt.push(f.clone())
-                        }
-                        internal_format::Fromatting::Underline(o) => match o {
-                            Some(color) => {
-                                if let Err(e) = fmt.write_str(format!("<u style=\"-webkit-text-decoration-color:#{:x?}{:x?}{:x?}\">",color.red,color.green,color.blue).as_str()) {
-                                        return Err(e);
-                                }
-                                current_active_fmt
-                                    .push(internal_format::Fromatting::Underline(None))
-                            }
-                            None => {
-                                if let Err(e) = fmt.write_str("<u>") {
-                                    return Err(e);
-                                }
-                                current_active_fmt
-                                    .push(internal_format::Fromatting::Underline(None))
-                            }
-                        },
-                        internal_format::Fromatting::CrossedOut => {
-                            if let Err(e) = fmt.write_str("<s>") {
-                                return Err(e);
-                            }
-                            current_active_fmt.push(f.clone())
-                        }
-                        internal_format::Fromatting::ForgroundColor(o) => {
-                            if let Some(color) = o {
-                                if let Err(e) = fmt.write_str(
-                                    format!(
-                                        "<span style=\"color=#{:x?}{:x?}{:x?}\">",
-                                        color.red, color.green, color.blue
-                                    )
-                                    .as_str(),
-                                ) {
-                                    return Err(e);
-                                }
-                                current_active_fmt
-                                    .push(internal_format::Fromatting::ForgroundColor(None))
-                            }
-                        }
-                        internal_format::Fromatting::BackgroundColor(o) => {
-                            if let Some(color) = o {
-                                if let Err(e) = fmt.write_str(
-                                    format!(
-                                        "<span style=\"background-color=#{:x?}{:x?}{:x?}\">",
-                                        color.red, color.green, color.blue
-                                    )
-                                    .as_str(),
-                                ) {
-                                    return Err(e);
-                                }
-                                current_active_fmt
-                                    .push(internal_format::Fromatting::BackgroundColor(None))
-                            }
-                        }
-                    },
-                    common::Toggle::UnSet(f) => match f {
-                        internal_format::Fromatting::Bold => {
-                            if current_active_fmt.contains(f) {
-                                if let Err(e) = fmt.write_str("</b>") {
-                                    return Err(e);
-                                }
-                                remove_fmt(f, &mut current_active_fmt);
-                            }
-                        }
-                        internal_format::Fromatting::Faint => {
-                            if current_active_fmt.contains(f) {
-                                if let Err(e) = fmt.write_str("</span>") {
-                                    return Err(e);
-                                }
-                                remove_fmt(f, &mut current_active_fmt);
-                            }
-                        }
-                        internal_format::Fromatting::Italic => {
-                            if current_active_fmt.contains(f) {
-                                if let Err(e) = fmt.write_str("</span>") {
-                                    return Err(e);
-                                }
-                                remove_fmt(f, &mut current_active_fmt);
-                            }
-                        }
-                        internal_format::Fromatting::Underline(_o) => {
-                            if current_active_fmt
-                                .contains(&internal_format::Fromatting::Underline(None))
-                            {
-                                if let Err(e) = fmt.write_str("</u>") {
-                                    return Err(e);
-                                }
-                                remove_fmt(f, &mut current_active_fmt);
-                            }
-                        }
-                        internal_format::Fromatting::CrossedOut => {
-                            if current_active_fmt.contains(f) {
-                                if let Err(e) = fmt.write_str("</s>") {
-                                    return Err(e);
-                                }
-                                remove_fmt(f, &mut current_active_fmt);
-                            }
-                        }
-                        internal_format::Fromatting::ForgroundColor(_o) => {
-                            if current_active_fmt
-                                .contains(&internal_format::Fromatting::ForgroundColor(None))
-                            {
-                                if let Err(e) = fmt.write_str("</span>") {
-                                    return Err(e);
-                                }
-                                remove_fmt(f, &mut current_active_fmt);
-                            }
-                        }
-                        internal_format::Fromatting::BackgroundColor(_o) => {
-                            if current_active_fmt
-                                .contains(&internal_format::Fromatting::BackgroundColor(None))
-                            {
-                                if let Err(e) = fmt.write_str("</span>") {
-                                    return Err(e);
-                                }
-                                remove_fmt(f, &mut current_active_fmt);
-                            }
-                        }
-                    },
+                    }
                 },
             }
         }
@@ -208,7 +164,7 @@ mod test {
                         )),
                     ],
                 },
-                "<b>test</b>".to_string(),
+                "<span style=\"font-weight:bold;\">test</span>".to_string(),
             ),
             (
                 internal_format::Text {
@@ -223,7 +179,7 @@ mod test {
                         TextElement::Text(" test_tmp.".to_string()),
                     ],
                 },
-                "<b>test</b> test_tmp.".to_string(),
+                "<span style=\"font-weight:bold;\">test</span> test_tmp.".to_string(),
             ),
         ];
         for test_case in test_cases {
@@ -254,7 +210,7 @@ mod test {
                         )),
                     ],
                 },
-                "<b>test</b>".to_string(),
+                "<span style=\"font-weight:bold;\">test</span>".to_string(),
             ),
             (
                 internal_format::Text {
@@ -269,7 +225,7 @@ mod test {
                         TextElement::Text(" test_tmp.".to_string()),
                     ],
                 },
-                "<b>test</b> test_tmp.".to_string(),
+                "<span style=\"font-weight:bold;\">test</span> test_tmp.".to_string(),
             ),
         ];
         for test_case in test_cases {

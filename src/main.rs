@@ -166,7 +166,7 @@ mod test {
                         threads: 1,
                     },
                 ),
-                "<b><span style=\"color=#0800\">Test</b></span>",
+                "<span style=\"font-weight:bold;color:#0080;\">Test</span>",
             ),
             (
                 (
